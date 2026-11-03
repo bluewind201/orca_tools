@@ -28,37 +28,72 @@ button{cursor:pointer}
 main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;padding:16px 20px;max-width:1440px;margin:0 auto}
 @media (max-width:960px){main{grid-template-columns:1fr;padding:12px 16px}}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
-/* Office */
-.stage{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:14px;
-  background:repeating-linear-gradient(0deg,var(--floor) 0 39px,var(--floor2) 39px 40px),
-             repeating-linear-gradient(90deg,transparent 0 39px,var(--floor2) 39px 40px);background-blend-mode:multiply}
-.table{position:absolute;left:50%;top:52%;width:34%;height:30%;transform:translate(-50%,-50%);border-radius:50%;
-  background:var(--table);box-shadow:inset 0 -6px 0 var(--table-edge),0 10px 20px rgba(0,0,0,.12)}
-.table span{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.85);font-weight:700;font-size:13px;letter-spacing:.04em;text-align:center;padding:0 16px}
-.desk{position:absolute;width:15%;height:11%;transform:translate(-50%,-50%);border-radius:8px;background:var(--desk);box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}
-.desk b{display:none;position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
-.desk .screen{position:absolute;left:50%;top:18%;width:38%;height:42%;transform:translateX(-50%);border-radius:3px;background:#2b3440}
-.desk.busy .screen{background:#3b6;animation:glow 1.6s ease-in-out infinite}
-@keyframes glow{50%{background:#5d8}}
-.agent{position:absolute;width:0;height:0;transition:left 1.4s cubic-bezier(.4,0,.2,1),top 1.4s cubic-bezier(.4,0,.2,1);z-index:3}
-.agent .body{position:absolute;left:-22px;top:-30px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;
-  background:var(--c);box-shadow:0 0 0 3px var(--panel),0 6px 12px rgba(0,0,0,.18)}
-.agent.walking .body{animation:bob .35s ease-in-out infinite alternate}
-@keyframes bob{to{transform:translateY(-4px)}}
-.agent .name{position:absolute;top:18px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;background:var(--panel);border:1px solid var(--line);padding:1px 7px;border-radius:999px}
-.agent .badge{position:absolute;top:-36px;left:12px;font-size:10px;font-weight:700;background:var(--ink);color:var(--panel);padding:0 5px;border-radius:6px;white-space:nowrap}
-.agent .dot{position:absolute;left:14px;top:2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--panel);background:#aaa}
+/* Office: a room in perspective. Logical floor coords (0-100) are projected in JS. */
+.stage{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:14px;--k:1;
+  --wall:#efe4d2;--wall2:#e4d6bf;--side:#d9c8ab;--plank:#d8b98c;--plank2:#c9a676;--seam:rgba(90,60,30,.18);
+  --wood:#d7b384;--wood-front:#b08758;--wood-dark:#8d6a43;--tableTop:#c79a63;--tableSide:#946b3d;background:var(--side)}
+@media (prefers-color-scheme:dark){.stage{--wall:#2c2a2e;--wall2:#262428;--side:#1f1d21;--plank:#4a3b2c;--plank2:#3f3226;--seam:rgba(0,0,0,.35);
+  --wood:#6b5038;--wood-front:#4f3a28;--wood-dark:#3b2b1e;--tableTop:#7a5a3a;--tableSide:#523b25}}
+.wall{position:absolute;left:0;right:0;top:0;height:26%;background:linear-gradient(var(--wall),var(--wall2));box-shadow:inset 0 -3px 0 rgba(0,0,0,.08)}
+.wall .win{position:absolute;bottom:14%;width:17%;height:64%;border-radius:6px;background:linear-gradient(#bfe3f7,#e9f6ff 70%,#cfe9c2 71%,#b9dca8);
+  box-shadow:inset 0 0 0 4px #fff,inset 0 0 0 5px rgba(0,0,0,.08),0 3px 6px rgba(0,0,0,.1)}
+@media (prefers-color-scheme:dark){.wall .win{background:linear-gradient(#1b2a4a,#2a3c66 70%,#1e3a2a 71%,#183022);box-shadow:inset 0 0 0 4px #444,0 3px 6px rgba(0,0,0,.3)}}
+.wall .win:before{content:"";position:absolute;left:50%;top:4px;bottom:4px;width:4px;margin-left:-2px;background:#fff;opacity:.9}
+.board{position:absolute;left:31%;width:38%;bottom:12%;height:70%;border-radius:6px;background:#fbfbf8;border:5px solid #b9bcc2;box-shadow:0 4px 8px rgba(0,0,0,.12);
+  padding:4px 10px;overflow:hidden;color:#3b3f46;display:flex;flex-direction:column;justify-content:center}
+@media (prefers-color-scheme:dark){.board{background:#e8e8e2}}
+.board small{font-size:10px;font-weight:700;color:#7c5cff;letter-spacing:.04em}
+.board div{font-size:13px;font-weight:700;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.plant{position:absolute;right:5%;bottom:-2%;width:7%;font-size:0}
+.clock{position:absolute;right:20%;top:20%;width:4.2%;aspect-ratio:1;border-radius:50%;background:#fff;border:3px solid #6b6f78;box-shadow:0 2px 4px rgba(0,0,0,.15)}
+.clock:before,.clock:after{content:"";position:absolute;left:50%;bottom:50%;width:2px;background:#333;transform-origin:bottom}
+.clock:before{height:32%;transform:rotate(var(--h,0deg))}.clock:after{height:42%;transform:rotate(var(--m,0deg));background:#c44}
+.floor{position:absolute;left:0;right:0;top:26%;bottom:0;width:100%;height:74%}
+.prop{position:absolute;width:0;height:0}
+.prop>.sc{position:absolute;transform:scale(calc(var(--s)*var(--k)));transform-origin:50% 100%}
+/* table: elliptical top + visible thickness */
+.tbl{position:absolute;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse at 40% 35%,color-mix(in srgb,var(--tableTop) 80%,#fff) ,var(--tableTop) 60%);
+  box-shadow:0 var(--th,12px) 0 var(--tableSide),0 calc(var(--th,12px) + 14px) 22px rgba(0,0,0,.22)}
+.tbl span{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.9);font-weight:700;font-size:13px;text-shadow:0 1px 2px rgba(0,0,0,.25);text-align:center}
+/* desk */
+.desk .sc{left:-60px;top:-62px;width:120px;height:62px}
+.desk .top{position:absolute;left:0;right:0;top:16px;height:30px;border-radius:6px;background:linear-gradient(color-mix(in srgb,var(--wood) 85%,#fff),var(--wood));box-shadow:0 12px 0 var(--wood-front),0 22px 14px rgba(0,0,0,.18)}
+.desk .plate{position:absolute;left:50%;top:47px;transform:translateX(-50%);font-size:9px;font-weight:700;color:rgba(255,255,255,.9);white-space:nowrap;letter-spacing:.02em}
+.desk .mon{position:absolute;left:34px;top:-16px;width:52px;height:34px;border-radius:4px;background:#2b323c;border:3px solid #3d4550;box-shadow:0 3px 0 #22272e}
+.desk .mon:after{content:"";position:absolute;left:50%;bottom:-11px;width:8px;height:8px;margin-left:-4px;background:#3d4550}
+.desk.busy .mon{background:linear-gradient(135deg,#3fbf7f,#2c8f5f);box-shadow:0 3px 0 #22272e,0 0 18px rgba(80,220,140,.55);animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{filter:brightness(1.25)}}
+.desk .mug{position:absolute;right:12px;top:18px;width:10px;height:11px;border-radius:2px 2px 4px 4px;background:var(--c);box-shadow:inset -3px 0 0 rgba(0,0,0,.15)}
+/* marten */
+.agent{position:absolute;width:0;height:0;transition:left 1.4s cubic-bezier(.4,0,.2,1),top 1.4s cubic-bezier(.4,0,.2,1)}
+.agent .sc{position:absolute;left:-40px;top:-100px;width:80px;height:100px;transform:scale(calc(var(--s)*var(--k)));transform-origin:50% 100%;transition:transform 1.4s cubic-bezier(.4,0,.2,1)}
+.agent .shadow{position:absolute;left:14px;right:14px;bottom:-6px;height:12px;border-radius:50%;background:radial-gradient(rgba(0,0,0,.32),transparent 70%)}
+.agent svg.m{position:absolute;left:0;bottom:0;width:80px;height:96px;overflow:visible;animation:breathe 3.2s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes breathe{50%{transform:scaleY(1.025)}}
+.agent.walking svg.m{animation:hop .32s ease-in-out infinite alternate}
+@keyframes hop{from{transform:translateY(0) rotate(-3deg)}to{transform:translateY(-7px) rotate(3deg)}}
+svg.m .tail{transform-origin:58px 100px;animation:wag 2.6s ease-in-out infinite}
+.agent.walking svg.m .tail{animation-duration:.6s}
+@keyframes wag{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}
+svg.m .head{transform-origin:50px 62px;animation:tilt 5s ease-in-out infinite}
+@keyframes tilt{0%,70%,100%{transform:rotate(0)}80%{transform:rotate(-6deg)}90%{transform:rotate(4deg)}}
+.agent[data-s=working] svg.m .head{animation:nod 1.2s ease-in-out infinite}
+@keyframes nod{50%{transform:translateY(1.5px) rotate(1deg)}}
+.agent .name{position:absolute;top:104px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;background:var(--panel);border:1px solid var(--line);border-bottom:2px solid var(--c);padding:1px 8px;border-radius:999px;box-shadow:var(--shadow)}
+.agent .badge{position:absolute;top:12px;left:60px;font-size:10px;font-weight:700;background:var(--ink);color:var(--panel);padding:0 5px;border-radius:6px;white-space:nowrap}
+.agent .dot{position:absolute;left:8px;top:16px;width:12px;height:12px;border-radius:50%;border:2px solid var(--panel);background:#aaa}
 .agent[data-s=working] .dot{background:#1f9d6b}
 .agent[data-s=blocked] .dot{background:#e8a33d}
 .agent[data-s=failed] .dot{background:#c44}
 .agent[data-s=done] .dot{background:#3a86d4}
-.bubble{position:absolute;bottom:40px;left:50%;transform:translateX(-50%) scale(.9);opacity:0;transition:opacity .25s,transform .25s;
+.bubble{position:absolute;bottom:calc(var(--s)*var(--k)*100px + 8px);left:50%;transform:translateX(-50%) scale(.9);opacity:0;transition:opacity .25s,transform .25s;z-index:1;
   width:max-content;max-width:210px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:12px;line-height:1.4;box-shadow:var(--shadow);pointer-events:none}
 .bubble.on{opacity:1;transform:translateX(-50%) scale(1)}
 .bubble:after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;background:var(--panel);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:translateX(-50%) rotate(45deg)}
 .bubble em{display:block;font-style:normal;font-size:10px;color:var(--muted);margin-bottom:2px}
-.mail{position:absolute;font-size:18px;z-index:4;transition:left 1s ease-in-out,top 1s ease-in-out,opacity .3s;pointer-events:none;transform:translate(-50%,-50%)}
-.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:24px}
+.mail{position:absolute;font-size:18px;z-index:9999;transition:left 1s ease-in-out,top 1s ease-in-out,opacity .3s;pointer-events:none;transform:translate(-50%,-50%)}
+.empty{position:absolute;left:0;right:0;top:30%;bottom:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:24px;z-index:9998;pointer-events:none}
+.empty p{background:var(--panel);padding:10px 14px;border-radius:12px;box-shadow:var(--shadow);margin:0}
 .legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 4px 0;color:var(--muted);font-size:12px}
 .legend span:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--c)}
 /* Side */
@@ -74,19 +109,20 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;padding:16p
 .task .m{font-size:12px;color:var(--muted)}
 .task .r{font-size:12px;margin-top:4px;white-space:pre-wrap;word-break:break-word}
 .msg{display:grid;grid-template-columns:32px 1fr;gap:8px;margin-bottom:12px}
-.msg .av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--c);font-size:16px}
+.msg .av{width:34px;height:34px;border-radius:50%;background:color-mix(in srgb,var(--c) 22%,var(--panel));overflow:hidden;box-shadow:inset 0 0 0 2px var(--c)}
+.msg .av svg{width:100%;height:100%}
 .msg .h{font-size:12px;color:var(--muted)}
 .msg .h b{color:var(--ink)}
 .msg .s{font-weight:600}
 .msg .b{white-space:pre-wrap;word-break:break-word;font-size:13px}
 .type{font-size:10px;font-weight:700;border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-left:4px;color:var(--muted)}
 .none{color:var(--muted);font-size:13px}
-@media (max-width:600px){.stage{aspect-ratio:4/5}.agent{transform:scale(.82)}.desk{width:22%;height:9%}.bubble{max-width:170px}header{padding:12px 16px}}
+@media (max-width:600px){.stage{aspect-ratio:1/1;--k:.62}.bubble{max-width:128px;font-size:10.5px;padding:5px 8px}header{padding:12px 16px}.board div{font-size:11px}.board small{font-size:9px}}
 </style>
 </head>
 <body>
 <header>
-  <h1>🏢 AI 팀 회의실</h1>
+  <h1>AI 팀 회의실</h1>
   <select id="run" aria-label="회의(Run) 선택"></select>
   <span style="flex:1"></span><span class="live" id="live"><i></i><span>연결 중</span></span>
   <button id="demo" type="button">데모 보기</button>
@@ -94,8 +130,22 @@ main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;padding:16p
 <main>
   <section>
     <div class="card stage" id="stage">
-      <div class="table"><span id="tableLabel">회의 테이블</span></div>
+      <div class="wall">
+        <div class="win" style="left:6%"></div>
+        <div class="board"><small>오늘의 목표</small><div id="goal">회의를 기다리는 중</div></div>
+        <div class="clock" id="clock"></div>
+        <svg class="plant" viewBox="0 0 40 60" aria-hidden="true"><path d="M20 40 C8 30 6 14 14 6 C16 18 20 26 20 40Z" fill="#4f9a5a"/><path d="M20 40 C32 30 36 14 27 4 C25 18 21 26 20 40Z" fill="#62b06d"/><path d="M20 42 C10 36 2 30 3 20 C12 24 18 32 20 42Z" fill="#3f8a4c"/><path d="M11 40h18l-3 18H14z" fill="#c8734a"/><rect x="9" y="38" width="22" height="5" rx="2" fill="#d98a5f"/></svg>
+      </div>
+      <svg class="floor" id="floor" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="prop" id="table"><div class="tbl"><span id="tableLabel">회의 테이블</span></div></div>
     </div>
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+      <radialGradient id="mFurB" cx="40%" cy="30%" r="75%"><stop offset="0" stop-color="#7a4f2e"/><stop offset=".7" stop-color="#4a2e19"/><stop offset="1" stop-color="#2f1d10"/></radialGradient>
+      <radialGradient id="mFurH" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#6e4628"/><stop offset=".65" stop-color="#3f2715"/><stop offset="1" stop-color="#26170c"/></radialGradient>
+      <linearGradient id="mBib" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd978"/><stop offset=".6" stop-color="#f6b13a"/><stop offset="1" stop-color="#e08d1f"/></linearGradient>
+      <radialGradient id="mMuz" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#fff4dc"/><stop offset="1" stop-color="#e9cf9f"/></radialGradient>
+      <linearGradient id="mTail" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5a3820"/><stop offset=".75" stop-color="#3a2413"/><stop offset="1" stop-color="#1c110a"/></linearGradient>
+    </defs></svg>
     <div class="legend" id="legend"></div>
   </section>
   <aside class="card">
@@ -118,13 +168,105 @@ let seenMsgs = new Set(), firstLoad = true
 const meetUntil = {} // roleId -> timestamp while gathered at the table
 
 // ---------- layout ----------
-const DESKS = [[14, 18], [50, 12], [86, 18], [86, 84], [50, 90], [14, 84], [14, 51], [86, 51]]
-// Stand on the room side of the desk so nobody walks off the edge
-const atDesk = ([x, y]) => [x, y < 50 ? y + 10 : y > 52 ? y - 10 : y + 10]
-function seatAt(i, n) { // around the oval table
+// Logical floor coordinates: x 0-100 left→right, y 0-100 back wall→viewer.
+const DESKS = [[18, 12], [50, 9], [82, 12], [82, 90], [50, 93], [18, 90], [6, 50], [94, 50]]
+const TABLE = { x: 50, y: 52, rx: 21, ry: 19 }
+// Stand in front of back-row desks, behind front-row desks (desk then hides the lower body).
+const atDesk = ([x, y]) => [x, y > 60 ? y - 13 : y + 14]
+function seatAt(i, n) {
   const a = (Math.PI * 2 * i) / Math.max(n, 1) - Math.PI / 2
-  return [50 + Math.cos(a) * 21, 52 + Math.sin(a) * 19]
+  return [TABLE.x + Math.cos(a) * (TABLE.rx + 6), TABLE.y + Math.sin(a) * (TABLE.ry + 7)]
 }
+const WALL = 26
+function proj([x, y]) { // floor point → screen % and depth scale
+  const t = y / 100, w = 0.72 + 0.28 * t
+  return { left: 50 + (x - 50) * w, top: WALL + 2 + t * (100 - WALL - 4), s: 0.74 + 0.36 * t, z: Math.round(y * 10) }
+}
+function place(el, p) { el.style.left = p.left + '%'; el.style.top = p.top + '%'; el.style.setProperty('--s', p.s.toFixed(3)); el.style.zIndex = p.z }
+
+// ---------- marten (담비) ----------
+const ACC = {
+  pm: (c) => `
+    <path d="M24 44 Q50 2 76 44" fill="none" stroke="#2b2b33" stroke-width="4"/>
+    <rect x="18" y="38" width="10" height="15" rx="4" fill="#2b2b33"/><rect x="72" y="38" width="10" height="15" rx="4" fill="#2b2b33"/>
+    <path d="M24 52 Q27 64 40 63" fill="none" stroke="#2b2b33" stroke-width="2.5"/><circle cx="41" cy="63" r="3" fill="${c}"/>`,
+  pmHand: (c) => `
+    <g transform="rotate(8 76 94)"><rect x="66" y="82" width="20" height="25" rx="2.5" fill="#b8874e"/><rect x="68.5" y="86" width="15" height="18" rx="1" fill="#fff"/>
+    <rect x="72" y="79.5" width="8" height="5" rx="1.5" fill="#9aa0a8"/><path d="M71 91h9M71 95h9M71 99h6" stroke="${c}" stroke-width="1.6"/></g>`,
+  dev: () => `
+    <rect x="31" y="37" width="16" height="12" rx="4.5" fill="rgba(190,225,255,.28)" stroke="#16161b" stroke-width="2.4"/>
+    <rect x="53" y="37" width="16" height="12" rx="4.5" fill="rgba(190,225,255,.28)" stroke="#16161b" stroke-width="2.4"/>
+    <path d="M47 42 Q50 40 53 42" fill="none" stroke="#16161b" stroke-width="2"/>
+    <path d="M34 39.5 l5 0" stroke="#fff" stroke-width="1.4" opacity=".8"/>`,
+  devHand: (c) => `
+    <rect x="31" y="84" width="38" height="24" rx="3" fill="#d3d8df"/><rect x="31" y="84" width="38" height="24" rx="3" fill="url(#mBib)" opacity=".0"/>
+    <circle cx="50" cy="96" r="3.6" fill="${c}"/><path d="M27 108 H73 L69 113 H31Z" fill="#a3aab4"/>
+    <path d="M33 86 H67" stroke="#fff" stroke-width="1.2" opacity=".7"/>`,
+  design: (c) => `
+    <g transform="rotate(-14 44 22)"><ellipse cx="45" cy="23" rx="23" ry="8.5" fill="${c}"/><ellipse cx="45" cy="20" rx="17" ry="6" fill="${c}" />
+    <ellipse cx="40" cy="18" rx="8" ry="2.5" fill="#fff" opacity=".25"/><circle cx="45" cy="13" r="3" fill="${c}"/></g>`,
+  designHand: (c) => `
+    <path d="M14 94 C10 84 22 78 30 84 C36 88 33 92 30 93 C27 94 28 98 31 100 C27 106 16 104 14 94Z" fill="#f4e4c4" stroke="#d8c39b" stroke-width="1"/>
+    <circle cx="19" cy="90" r="2.6" fill="#e0598b"/><circle cx="25" cy="86" r="2.6" fill="#3a86d4"/><circle cx="20" cy="98" r="2.6" fill="#f6b13a"/>
+    <path d="M74 104 L86 74" stroke="#8a5a2b" stroke-width="3.4" stroke-linecap="round"/><path d="M86 74 l3 -8 l-1 9z" fill="${c}" stroke="${c}" stroke-width="2"/>`,
+  analyst: (c) => `<path d="M42 66 L50 70 L42 74Z M58 66 L50 70 L58 74Z" fill="${c}"/><circle cx="50" cy="70" r="2.2" fill="${c}"/>`,
+  analystHand: (c) => `
+    <rect x="32" y="82" width="36" height="27" rx="3.5" fill="#1f2733" stroke="#3a4352" stroke-width="1.5"/>
+    <rect x="37" y="97" width="5" height="8" fill="#f6b13a"/><rect x="45" y="92" width="5" height="13" fill="#3fbf7f"/><rect x="53" y="88" width="5" height="17" fill="#5aa3f0"/>
+    <path d="M37 91 L46 87 L54 84 L63 86" fill="none" stroke="${c}" stroke-width="1.8"/><circle cx="63" cy="86" r="1.8" fill="${c}"/>`,
+  qa: (c) => `<path d="M27 33 Q50 6 73 33Z" fill="${c}"/><rect x="24" y="31" width="52" height="5" rx="2.5" fill="${c}"/><path d="M50 12 V31" stroke="rgba(0,0,0,.18)" stroke-width="2"/>`,
+  qaHand: (c) => `
+    <circle cx="50" cy="92" r="7" fill="#1f9d6b"/><path d="M46.5 92 l2.6 2.6 l4.6 -5" fill="none" stroke="#fff" stroke-width="2"/>
+    <path d="M70 92 L62 104" stroke="#4a4f57" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="75" cy="83" r="9" fill="rgba(200,232,255,.45)" stroke="#4a4f57" stroke-width="3.2"/><path d="M71 79 q2 -2 5 -2" stroke="#fff" stroke-width="1.5" fill="none"/>`
+}
+function marten(roleId, color, { headOnly = false } = {}) {
+  const c = color, head = ACC[roleId] ? ACC[roleId](c) : '', hand = ACC[roleId + 'Hand'] ? ACC[roleId + 'Hand'](c) : ''
+  const vb = headOnly ? '14 6 72 72' : '0 0 100 120'
+  return `<svg class="${headOnly ? 'h' : 'm'}" viewBox="${vb}" aria-hidden="true">
+  ${headOnly ? '' : `<g class="tail"><path d="M60 102 C86 106 99 86 92 66 C88 56 93 46 98 40" fill="none" stroke="url(#mTail)" stroke-width="13" stroke-linecap="round"/>
+    <path d="M94 50 C95 45 96 43 98 40" fill="none" stroke="#1a100a" stroke-width="13" stroke-linecap="round"/></g>
+  <ellipse cx="40" cy="113" rx="8.5" ry="5" fill="#2a190d"/><ellipse cx="60" cy="113" rx="8.5" ry="5" fill="#2a190d"/>
+  <ellipse cx="50" cy="90" rx="22" ry="25" fill="url(#mFurB)"/>
+  <path d="M35 70 Q50 63 65 70 Q68 94 50 107 Q32 94 35 70Z" fill="url(#mBib)"/>
+  <ellipse cx="44" cy="80" rx="6" ry="9" fill="#fff" opacity=".18"/>
+  <ellipse cx="29" cy="90" rx="6.5" ry="11" transform="rotate(14 29 90)" fill="url(#mFurB)"/>
+  <ellipse cx="71" cy="90" rx="6.5" ry="11" transform="rotate(-14 71 90)" fill="url(#mFurB)"/>
+  <path d="M31 66 Q50 77 69 66 L69 71 Q50 83 31 71Z" fill="${c}"/><path d="M31 66 Q50 77 69 66" fill="none" stroke="#fff" stroke-opacity=".3" stroke-width="1.2"/>
+  ${hand}`}
+  <g class="head">
+    <circle cx="29" cy="27" r="9.5" fill="#2c1b0e"/><circle cx="71" cy="27" r="9.5" fill="#2c1b0e"/>
+    <circle cx="29.5" cy="28" r="5" fill="#c9976a"/><circle cx="70.5" cy="28" r="5" fill="#c9976a"/>
+    <ellipse cx="50" cy="45" rx="26" ry="22.5" fill="url(#mFurH)"/>
+    <ellipse cx="50" cy="56" rx="15" ry="9.5" fill="url(#mMuz)"/>
+    <ellipse cx="41" cy="33" rx="11" ry="5" fill="#fff" opacity=".13"/>
+    <circle cx="40" cy="43" r="4.4" fill="#0f0905"/><circle cx="60" cy="43" r="4.4" fill="#0f0905"/>
+    <circle cx="41.6" cy="41.4" r="1.6" fill="#fff"/><circle cx="61.6" cy="41.4" r="1.6" fill="#fff"/>
+    <ellipse cx="50" cy="51" rx="3.6" ry="2.5" fill="#1a0f08"/><ellipse cx="49" cy="50.3" rx="1.2" ry=".7" fill="#fff" opacity=".5"/>
+    <path d="M45.5 55.5 Q50 59 54.5 55.5" fill="none" stroke="#6b4a2e" stroke-width="1.6" stroke-linecap="round"/>
+    <ellipse cx="33" cy="53" rx="4.2" ry="2.6" fill="#f39b8b" opacity=".45"/><ellipse cx="67" cy="53" rx="4.2" ry="2.6" fill="#f39b8b" opacity=".45"/>
+    ${head}
+  </g></svg>`
+}
+
+// ---------- room ----------
+function drawFloor() {
+  const f = $('#floor'); const lines = []
+  for (let i = 0; i <= 12; i++) { const top = 14 + 72 * i / 12, bot = 100 * i / 12; lines.push(`<line x1="${top}" y1="0" x2="${bot}" y2="100"/>`) }
+  for (let k = 1; k < 9; k++) { const t = Math.pow(k / 9, 1.25) * 100; const w = 0.72 + 0.28 * t / 100; lines.push(`<line x1="${50 - 50 * w}" y1="${t}" x2="${50 + 50 * w}" y2="${t}" opacity=".55"/>`) }
+  f.innerHTML = `<defs><linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--plank2)"/><stop offset="1" stop-color="var(--plank)"/></linearGradient>
+    <radialGradient id="lamp" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <polygon points="14,0 86,0 100,100 0,100" fill="url(#fl)"/>
+    <g stroke="var(--seam)" stroke-width=".25" vector-effect="non-scaling-stroke">${lines.join('')}</g>
+    <polygon points="14,0 86,0 100,100 0,100" fill="url(#lamp)"/>
+    <ellipse cx="50" cy="${(TABLE.y / 100) * 100}" rx="34" ry="26" fill="#7c5cff" opacity=".07"/>`
+  const t = $('#table'), p = proj([TABLE.x, TABLE.y]), w = 0.72 + 0.28 * TABLE.y / 100
+  place(t, p)
+  const tb = t.querySelector('.tbl')
+  tb.style.width = `${TABLE.rx * 2 * w}cqw`; tb.style.height = `${TABLE.ry * 2 * 0.7}cqh`
+}
+function tickClock() { const d = new Date(); const c = $('#clock'); c.style.setProperty('--h', (d.getHours() % 12 * 30 + d.getMinutes() / 2) + 'deg'); c.style.setProperty('--m', d.getMinutes() * 6 + 'deg') }
+let OBJECTIVE = ''
 
 // ---------- roles ----------
 function roleFor(text) {
@@ -177,65 +319,70 @@ function buildModel(state) {
 
 // ---------- render office ----------
 const stage = $('#stage'), agentEls = new Map()
-function pos(el, [x, y]) {
-  const was = [el.style.left, el.style.top].join()
-  el.style.left = x + '%'; el.style.top = y + '%'
-  if (was !== [el.style.left, el.style.top].join() && was !== ',') {
-    el.classList.add('walking'); clearTimeout(el._w); el._w = setTimeout(() => el.classList.remove('walking'), 1400)
-  }
+stage.style.containerType = 'size'
+function walkTo(el, xy) {
+  const p = proj(xy), key = xy.map((v) => v.toFixed(1)).join()
+  if (el._key && el._key !== key) { el.classList.add('walking'); clearTimeout(el._w); el._w = setTimeout(() => el.classList.remove('walking'), 1400) }
+  el._key = key; el._xy = xy; place(el, p); el.style.zIndex = p.z + 5
 }
 function renderOffice(model) {
+  $('#goal').textContent = OBJECTIVE || '회의를 기다리는 중'
   stage.querySelectorAll('.empty').forEach((e) => e.remove())
   if (!model.members.length || (!model.messages.length && model.members.every((m) => !m.tasks.length))) {
     const e = document.createElement('div'); e.className = 'empty'
-    e.innerHTML = currentRun ? '아직 이 회의에 작업이나 대화가 없어요.<br>Orca에서 PM에게 팀 프롬프트로 일을 맡겨보세요.' : '진행 중인 회의(Run)가 없어요.<br>오른쪽 위 “데모 보기”로 미리 볼 수 있어요.'
+    e.innerHTML = '<p>' + (currentRun ? '아직 이 회의에 작업이나 대화가 없어요.<br>Orca에서 PM에게 팀 프롬프트로 일을 맡겨보세요.' : '진행 중인 회의(Run)가 없어요.<br>오른쪽 위 “데모 보기”로 미리 볼 수 있어요.') + '</p>'
     stage.appendChild(e)
   }
   const now = Date.now()
   const ids = model.members.map((m) => m.role.id)
-  // desks
   stage.querySelectorAll('.desk').forEach((d) => { if (!ids.includes(d.dataset.id)) d.remove() })
   const meeting = model.members.filter((m) => (meetUntil[m.role.id] || 0) > now)
   model.members.forEach((m, i) => {
     const deskPos = DESKS[i % DESKS.length]
     let desk = stage.querySelector(`.desk[data-id="${m.role.id}"]`)
-    if (!desk) { desk = document.createElement('div'); desk.className = 'desk'; desk.dataset.id = m.role.id; desk.innerHTML = '<div class="screen"></div><b></b>'; stage.appendChild(desk) }
-    desk.style.left = deskPos[0] + '%'; desk.style.top = deskPos[1] + '%'
-    desk.querySelector('b').textContent = m.role.name + '의 자리'
+    if (!desk) {
+      desk = document.createElement('div'); desk.className = 'prop desk'; desk.dataset.id = m.role.id
+      desk.innerHTML = '<div class="sc"><div class="mon"></div><div class="top"></div><div class="mug"></div><div class="plate"></div></div>'
+      stage.appendChild(desk)
+    }
+    place(desk, proj(deskPos))
+    desk.style.setProperty('--c', m.role.color)
+    desk.querySelector('.plate').textContent = m.role.name
     desk.classList.toggle('busy', m.status === 'working')
     let el = agentEls.get(m.role.id)
     if (!el) {
       el = document.createElement('div'); el.className = 'agent'
-      el.innerHTML = '<div class="bubble"></div><div class="body"></div><span class="dot"></span><span class="badge"></span><span class="name"></span>'
+      el.innerHTML = `<div class="bubble"></div><div class="sc"><div class="shadow"></div>${marten(m.role.id, m.role.color)}<span class="dot"></span><span class="badge"></span><span class="name"></span></div>`
       stage.appendChild(el); agentEls.set(m.role.id, el)
-      el.style.left = deskPos[0] + '%'; el.style.top = atDesk(deskPos)[1] + '%'
     }
     el.style.setProperty('--c', m.role.color)
     el.dataset.s = m.status
-    el.querySelector('.body').textContent = m.role.emoji
     el.querySelector('.name').textContent = m.role.name + (m.coordinator ? ' (리드)' : '')
     const badge = [...m.agents].join('·')
     el.querySelector('.badge').textContent = badge; el.querySelector('.badge').hidden = !badge
     const mi = meeting.indexOf(m)
-    pos(el, mi >= 0 ? seatAt(mi, meeting.length) : atDesk(deskPos))
+    walkTo(el, mi >= 0 ? seatAt(mi, meeting.length) : atDesk(deskPos))
   })
   for (const [id, el] of agentEls) if (!ids.includes(id)) { el.remove(); agentEls.delete(id) }
   $('#tableLabel').textContent = meeting.length >= 2 ? `회의 중 · ${meeting.length}명` : '회의 테이블'
-  $('#legend').innerHTML = model.members.map((m) => `<span style="--c:${m.role.color}">${m.role.emoji} ${m.role.name}${m.agents.size ? ' – ' + [...m.agents].join(', ') : ''}</span>`).join('')
+  $('#legend').innerHTML = model.members.map((m) => `<span style="--c:${m.role.color}">${m.role.name}${m.agents.size ? ' – ' + [...m.agents].join(', ') : ''}</span>`).join('')
 }
 
+const LIM = () => (stage.clientWidth < 520 ? 44 : 90)
 function say(roleId, msg) {
   const el = agentEls.get(roleId); if (!el) return
   const b = el.querySelector('.bubble')
   const text = (msg.subject || '') + (msg.body ? ' – ' + msg.body : '')
-  b.innerHTML = `<em>${esc(typeLabel(msg.type))}</em>${esc(text.length > 90 ? text.slice(0, 88) + '…' : text)}`
-  b.classList.add('on'); clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('on'), 7000)
+  b.innerHTML = `<em>${esc(typeLabel(msg.type))}</em>${esc(text.length > LIM() ? text.slice(0, LIM() - 2) + '…' : text)}`
+  b.classList.add('on'); el.style.zIndex = 5000; clearTimeout(b._t)
+  b._t = setTimeout(() => { b.classList.remove('on'); if (el._xy) el.style.zIndex = proj(el._xy).z + 5 }, 7000)
 }
 function fly(fromId, toId) {
   const a = agentEls.get(fromId), b = agentEls.get(toId); if (!a || !b || a === b) return
+  const up = (el) => `calc(${el.style.top} - ${Math.round(60 * Number(el.style.getPropertyValue('--s') || 1))}px)`
   const m = document.createElement('div'); m.className = 'mail'; m.textContent = '✉️'
-  m.style.left = a.style.left; m.style.top = a.style.top; stage.appendChild(m)
-  requestAnimationFrame(() => requestAnimationFrame(() => { m.style.left = b.style.left; m.style.top = b.style.top }))
+  m.style.left = a.style.left; m.style.top = up(a); stage.appendChild(m)
+  requestAnimationFrame(() => requestAnimationFrame(() => { m.style.left = b.style.left; m.style.top = up(b) }))
   setTimeout(() => { m.style.opacity = 0; setTimeout(() => m.remove(), 300) }, 1100)
 }
 
@@ -251,7 +398,7 @@ function renderBoard(model) {
     return `<div class="col"><h3><span>${label}</span><span>${list.length}</span></h3>${list.map((t) => `
       <div class="task" style="--c:${t.role.color}">
         <div class="t">${esc(t.task_title || t.display_name || t.title || t.id)}</div>
-        <div class="m">${t.role.emoji} ${esc(t.role.name)}${t.worker?.agent ? ' · ' + esc(agentName(t.worker.agent)) : ''} · ${STATUS_KO[t.status] || t.status}</div>
+        <div class="m">${esc(t.role.name)}${t.worker?.agent ? ' · ' + esc(agentName(t.worker.agent)) : ''} · ${STATUS_KO[t.status] || t.status}</div>
         ${t.result ? `<div class="r">${esc(String(t.result).slice(0, 400))}</div>` : ''}
       </div>`).join('')}</div>`
   }).join('')
@@ -262,7 +409,7 @@ function renderChat(model) {
   const list = model.messages.filter((m) => m.type !== 'heartbeat').slice(-150).reverse()
   if (!list.length) { $('#chat').innerHTML = '<p class="none">아직 대화가 없어요.</p>'; return }
   $('#chat').innerHTML = list.map((m) => `
-    <div class="msg"><div class="av" style="--c:${m.fromRole.color}">${m.fromRole.emoji}</div><div>
+    <div class="msg"><div class="av" style="--c:${m.fromRole.color}">${marten(m.fromRole.id, m.fromRole.color, { headOnly: true })}</div><div>
       <div class="h"><b>${esc(m.fromRole.name)}</b> → ${esc(m.toRole ? m.toRole.name : m.to_handle?.startsWith('@') ? '모두' : m.to_handle)} · ${time(m.created_at)}<span class="type">${esc(typeLabel(m.type))}</span></div>
       <div class="s">${esc(m.subject || '')}</div>${m.body ? `<div class="b">${esc(m.body.slice(0, 1200))}</div>` : ''}
     </div></div>`).join('')
@@ -285,8 +432,9 @@ async function refreshRunList() {
   sel.innerHTML = runs.length ? runs.map((r) => `<option value="${esc(r.id)}">${esc(r.objective || r.id)}</option>`).join('') : '<option value="">회의 없음</option>'
   if (!runs.some((r) => r.id === prev)) currentRun = runs[0]?.id || ''
   sel.value = currentRun
+  OBJECTIVE = runs.find((r) => r.id === currentRun)?.objective || ''
 }
-$('#run').onchange = (e) => { currentRun = e.target.value; resetView(); tick() }
+$('#run').onchange = (e) => { currentRun = e.target.value; OBJECTIVE = e.target.selectedOptions[0]?.textContent || ''; resetView(); tick() }
 $('#demo').onclick = () => { DEMO = !DEMO; $('#demo').textContent = DEMO ? '실제 데이터 보기' : '데모 보기'; demo.reset(); resetView(); refreshRunList().then(tick) }
 function resetView() { seenMsgs = new Set(); firstLoad = true; for (const k in meetUntil) delete meetUntil[k] }
 
@@ -373,6 +521,7 @@ const demo = (() => {
     { id: 'analyst', name: '분석가', emoji: '📊', color: '#e8a33d', match: ['analyst', '분석'] },
     { id: 'qa', name: 'QA·리뷰어', emoji: '🔍', color: '#3a86d4', match: ['qa', 'test', '리뷰'] }] }
   if (DEMO) $('#demo').textContent = '실제 데이터 보기'
+  drawFloor(); tickClock(); setInterval(tickClock, 30000)
   try { await refreshRunList() } catch { $('#live').className = 'live off'; $('#live span').textContent = '연결 끊김' }
   await tick()
   setInterval(tick, DEMO ? 1500 : 4000)
