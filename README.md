@@ -15,7 +15,8 @@ NAS에서 Orca를 화면 없이(`orca-ide serve`) 24시간 돌리고, PC와 모�
 |---|---|
 | `Dockerfile` | Ubuntu 24.04 + Orca(AppImage 압축 해제) + Node 22 + Claude Code·Codex·Gemini CLI + git·gh |
 | `entrypoint.sh` | NAS 사용자 권한으로 바꾼 뒤 `orca-ide serve` 실행 |
-| `docker-compose.example.yml` | Container Manager 설정 예시. `docker-compose.yml`로 복사해서 값을 채워 씁니다 (Git에는 올라가지 않음) |
+| `docker-compose.yml` | Container Manager 설정 (포트, 볼륨). 개인 값은 `.env`에서 읽습니다 |
+| `.env.example` | 개인 설정 예시. `.env`로 복사해서 씁니다 (`.env`는 Git에 올라가지 않음) |
 | `meeting-room/` | AI 팀 회의실 페이지 (포트 6769). 사용법은 아래 9번과 `meeting-room/TEAM_PROMPT.md` |
 
 > 테스트 결과(2026-11-02): 이미지 빌드, 서버 기동(`Orca server ready`), 터미널 데몬 자가진단, 재시작 후 유지, 데스크톱·모바일 페어링 링크 출력, 브라우저용 웹 클라이언트(HTTP 200)까지 확인했습니다. 실제 NAS와 폰 연결은 아래 단계에서 직접 확인이 필요합니다.
@@ -40,19 +41,17 @@ NAS에서 Orca를 화면 없이(`orca-ide serve`) 24시간 돌리고, PC와 모�
    /docker/orca/home
    /docker/orca/workspace
    ```
-5. 이 저장소 파일을 `/docker/orca`에 받습니다. 아래 **Git으로 받기**를 따르거나, zip으로 받아 업로드해도 됩니다. `docker-compose.example.yml`을 `docker-compose.yml`로 복사합니다.
+5. 이 저장소 파일을 `/docker/orca`에 받습니다. 아래 **Git으로 받기**를 따르거나, zip으로 받아 업로드해도 됩니다. 필요하면 `.env.example`을 `.env`로 복사합니다.
 
 ## 2. 설정값 채우기
 
 1. **제어판 → 터미널 및 SNMP**에서 SSH를 켜고, PC에서 접속합니다: `ssh 내아이디@NAS주소`
 2. `id`를 입력해 `uid=`(보통 1026)와 `gid=`(보통 100) 값을 확인합니다.
-3. `docker-compose.yml`에서 세 줄을 고칩니다.
-   ```yaml
-   PUID: "1026"                       # 위에서 확인한 uid
-   PGID: "100"                        # 위에서 확인한 gid
-   ORCA_PAIRING_ADDRESS: "100.x.y.z"  # NAS의 Tailscale 주소
+3. 기본값(uid 1026, gid 100, Tailscale IP 100.119.72.114)과 다르면 `.env` 파일에 적습니다.
+   ```bash
+   cp .env.example .env
+   nano .env   # PUID, PGID, ORCA_PAIRING_ADDRESS 확인
    ```
-   볼륨 경로가 `/volume1`이 아니면 그 부분도 맞춰 주세요.
 
 ## 3. 컨테이너 만들기
 
@@ -87,19 +86,20 @@ Orca 안에서 계정 전환 기능까지 쓰고 싶다면 같은 셸에서 `orc
 
 ## 5. PC 연결
 
+0. `.env`에서 `ORCA_PAIRING_MODE=desktop`으로 바꾸고 `sudo docker compose up -d`를 실행합니다.
 1. SSH에서 `sudo docker logs orca`를 실행해 **Pairing URL** (`orca://pair?code=...`)을 복사합니다.
 2. PC의 Orca 데스크톱 앱 → **Settings → Remote Orca Servers → Add Server**에 붙여 넣습니다.
 3. 앱 없이 쓰고 싶다면 로그의 **Web client URL** (`http://100.x.y.z:6768/web-index.html#pairing=...`)을 브라우저로 열어도 됩니다.
 
 ## 6. 모바일 연결
 
-1. `docker-compose.yml`에서 `ORCA_PAIRING_MODE: "mobile"`로 바꾸고, Container Manager에서 프로젝트를 **중지 → 시작**합니다.
+1. `.env`에서 `ORCA_PAIRING_MODE=mobile`로 바꾸고 `sudo docker compose up -d`를 실행합니다.
 2. SSH에서 `sudo docker logs orca`를 실행하면 QR 코드가 나옵니다. DSM 로그 화면에서는 QR이 깨질 수 있으니 SSH 창을 쓰세요.
 3. Orca 모바일 앱 → **Pair**에서 QR을 스캔하거나 링크를 붙여 넣습니다. 폰의 Tailscale이 켜져 있어야 합니다.
 
 ## 7. 페어링이 끝나면
 
-`ORCA_PAIRING_MODE: "off"`로 바꾸고 다시 시작합니다. 이미 연결된 기기는 그대로 유지되고, 로그에 새 페어링 링크가 남지 않습니다. 기기를 새로 추가할 때만 `desktop`이나 `mobile`로 잠깐 바꾸면 됩니다.
+`.env`에서 `ORCA_PAIRING_MODE=off`로 바꾸고 `sudo docker compose up -d`를 실행합니다. 이미 연결된 기기는 그대로 유지되고, 로그에 새 페어링 링크가 남지 않습니다. 기기를 새로 추가할 때만 `desktop`이나 `mobile`로 잠깐 바꾸면 됩니다.
 
 ## 8. 첫 작업 테스트
 
@@ -117,23 +117,11 @@ PM, 개발자, 디자이너, 분석가, QA 역할을 맡은 AI들이 일을 나�
 
 ![AI 팀 회의실 미리보기](docs/preview-desktop.png)
 
-**이미 설치한 경우 업데이트 방법** (Git으로 받았다면 아래 "Git으로 받기와 업데이트"를 따르세요)
-
-1. `meeting-room` 폴더 전체와 새 `Dockerfile`, `entrypoint.sh`를 `/docker/orca`에 덮어씁니다.
-2. 지금 쓰는 `docker-compose.yml`은 그대로 두고 아래 줄만 추가합니다.
-   ```yaml
-       ports:
-         - "6768:6768"
-         - "6769:6769"        # 추가
-       environment:
-         MEETING_ROOM: "on"   # 추가
-   ```
-3. SSH에서 `cd /volume1/docker/orca && sudo docker compose up -d --build`
-4. PC나 폰 브라우저(Tailscale 켠 상태)에서 `http://<NAS Tailscale IP>:6769` 를 엽니다. 아직 회의가 없으면 오른쪽 위 **데모 보기**로 움직임을 먼저 볼 수 있습니다.
+**이미 설치한 경우:** 아래 "Git으로 받기와 업데이트"대로 받은 뒤 `sudo docker compose up -d --build`를 실행하고, PC나 폰 브라우저(Tailscale 켠 상태)에서 `http://100.119.72.114:6769` 를 엽니다. 회의실은 기본으로 켜져 있어 따로 설정할 것이 없습니다. 아직 회의가 없으면 오른쪽 위 **데모 보기**로 움직임을 먼저 볼 수 있습니다.
 
 **회의 시작하기:** Orca에서 Claude 에이전트를 하나 열고 [`meeting-room/TEAM_PROMPT.md`](meeting-room/TEAM_PROMPT.md)의 프롬프트를 붙여 넣으세요. 그 Claude가 PM이 되어 Codex와 Gemini에게 일을 나눕니다.
 
-**접근 제한(선택):** `MEETING_ROOM_TOKEN: "원하는단어"`를 넣으면 `http://…:6769/?token=원하는단어`로만 열립니다.
+**접근 제한(선택):** `.env`에 `MEETING_ROOM_TOKEN=원하는단어`를 넣으면 `http://…:6769/?token=원하는단어`로만 열립니다.
 
 ## Git으로 받기와 업데이트
 
@@ -151,7 +139,8 @@ sudo git checkout -f -B main origin/main
 
 - DSM에 `git`이 없다면 **패키지 센터 → Git Server**를 설치하세요.
 - 비공개 저장소라면 사용자 이름과 비밀번호를 물어봅니다. 비밀번호 자리에는 GitHub 비밀번호가 아니라 **Personal Access Token**을 넣어야 합니다. GitHub → Settings → Developer settings → Fine-grained tokens에서 이 저장소의 Contents 읽기 권한으로 만들 수 있어요.
-- `docker-compose.yml`, `home/`, `workspace/`는 Git이 건드리지 않습니다. 설정과 로그인 정보는 그대로 유지돼요.
+- `.env`, `home/`, `workspace/`는 Git이 건드리지 않습니다. 로그인 정보와 프로젝트는 그대로 유지돼요.
+- 예전에 직접 고친 `docker-compose.yml`은 Git 버전으로 덮어써집니다. uid나 IP가 기본값과 다르면 먼저 `.env`에 옮겨 적어 주세요.
 
 이후 업데이트할 때:
 
@@ -161,7 +150,7 @@ sudo git pull
 sudo docker compose up -d --build
 ```
 
-새 버전에서 compose 설정이 바뀌면 `docker-compose.example.yml`과 지금 쓰는 `docker-compose.yml`을 비교해서 새 줄만 옮겨 주세요.
+개인 설정은 `.env`에만 두면 업데이트할 때 손댈 것이 없습니다.
 
 ## 운영 메모
 

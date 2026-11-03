@@ -2,3 +2,4 @@ home
 workspace
 docs
 .git
+.env
