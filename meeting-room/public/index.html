@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI 팀 회의실</title>
+<style>
+:root{
+  --bg:#f4f1ea; --panel:#fffdf8; --ink:#2a2622; --muted:#7a7268; --line:#e4ddd0;
+  --floor:#efe7d8; --floor2:#e8dfcd; --table:#c9a77c; --table-edge:#a9865a; --desk:#d9c7a8;
+  --shadow:0 1px 2px rgba(0,0,0,.06),0 4px 14px rgba(0,0,0,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#16181c; --panel:#1f2228; --ink:#ebe7e0; --muted:#9a948a; --line:#2f333b;
+    --floor:#23262d; --floor2:#262a31; --table:#6b5640; --table-edge:#54432f; --desk:#3a352d;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.3); }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Segoe UI",sans-serif}
+header{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-start;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.01em}
+.objective{color:var(--muted);flex:1;min-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+select,button{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px}
+button{cursor:pointer}
+.live{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+.live i{width:8px;height:8px;border-radius:50%;background:#1f9d6b;box-shadow:0 0 0 3px rgba(31,157,107,.18)}
+.live.off i{background:#c44;box-shadow:0 0 0 3px rgba(204,68,68,.18)}
+main{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;padding:16px 20px;max-width:1440px;margin:0 auto}
+@media (max-width:960px){main{grid-template-columns:1fr;padding:12px 16px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+/* Office */
+.stage{position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:14px;
+  background:repeating-linear-gradient(0deg,var(--floor) 0 39px,var(--floor2) 39px 40px),
+             repeating-linear-gradient(90deg,transparent 0 39px,var(--floor2) 39px 40px);background-blend-mode:multiply}
+.table{position:absolute;left:50%;top:52%;width:34%;height:30%;transform:translate(-50%,-50%);border-radius:50%;
+  background:var(--table);box-shadow:inset 0 -6px 0 var(--table-edge),0 10px 20px rgba(0,0,0,.12)}
+.table span{position:absolute;inset:0;display:grid;place-items:center;color:rgba(255,255,255,.85);font-weight:700;font-size:13px;letter-spacing:.04em;text-align:center;padding:0 16px}
+.desk{position:absolute;width:15%;height:11%;transform:translate(-50%,-50%);border-radius:8px;background:var(--desk);box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}
+.desk b{display:none;position:absolute;left:50%;bottom:-18px;transform:translateX(-50%);font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
+.desk .screen{position:absolute;left:50%;top:18%;width:38%;height:42%;transform:translateX(-50%);border-radius:3px;background:#2b3440}
+.desk.busy .screen{background:#3b6;animation:glow 1.6s ease-in-out infinite}
+@keyframes glow{50%{background:#5d8}}
+.agent{position:absolute;width:0;height:0;transition:left 1.4s cubic-bezier(.4,0,.2,1),top 1.4s cubic-bezier(.4,0,.2,1);z-index:3}
+.agent .body{position:absolute;left:-22px;top:-30px;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:22px;
+  background:var(--c);box-shadow:0 0 0 3px var(--panel),0 6px 12px rgba(0,0,0,.18)}
+.agent.walking .body{animation:bob .35s ease-in-out infinite alternate}
+@keyframes bob{to{transform:translateY(-4px)}}
+.agent .name{position:absolute;top:18px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:11px;font-weight:700;background:var(--panel);border:1px solid var(--line);padding:1px 7px;border-radius:999px}
+.agent .badge{position:absolute;top:-36px;left:12px;font-size:10px;font-weight:700;background:var(--ink);color:var(--panel);padding:0 5px;border-radius:6px;white-space:nowrap}
+.agent .dot{position:absolute;left:14px;top:2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--panel);background:#aaa}
+.agent[data-s=working] .dot{background:#1f9d6b}
+.agent[data-s=blocked] .dot{background:#e8a33d}
+.agent[data-s=failed] .dot{background:#c44}
+.agent[data-s=done] .dot{background:#3a86d4}
+.bubble{position:absolute;bottom:40px;left:50%;transform:translateX(-50%) scale(.9);opacity:0;transition:opacity .25s,transform .25s;
+  width:max-content;max-width:210px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 10px;font-size:12px;line-height:1.4;box-shadow:var(--shadow);pointer-events:none}
+.bubble.on{opacity:1;transform:translateX(-50%) scale(1)}
+.bubble:after{content:"";position:absolute;left:50%;bottom:-6px;width:10px;height:10px;background:var(--panel);border-right:1px solid var(--line);border-bottom:1px solid var(--line);transform:translateX(-50%) rotate(45deg)}
+.bubble em{display:block;font-style:normal;font-size:10px;color:var(--muted);margin-bottom:2px}
+.mail{position:absolute;font-size:18px;z-index:4;transition:left 1s ease-in-out,top 1s ease-in-out,opacity .3s;pointer-events:none;transform:translate(-50%,-50%)}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:24px}
+.legend{display:flex;flex-wrap:wrap;gap:14px;padding:10px 4px 0;color:var(--muted);font-size:12px}
+.legend span:before{content:"";display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--c)}
+/* Side */
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;border-radius:0;background:none;padding:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--ink)}
+.pane{padding:14px;max-height:calc(100vh - 160px);overflow:auto}
+@media (max-width:960px){.pane{max-height:none}}
+.col{margin-bottom:14px}
+.col h3{font-size:12px;margin:0 0 6px;color:var(--muted);font-weight:700;display:flex;justify-content:space-between}
+.task{border:1px solid var(--line);border-left:4px solid var(--c);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg)}
+.task .t{font-weight:600}
+.task .m{font-size:12px;color:var(--muted)}
+.task .r{font-size:12px;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+.msg{display:grid;grid-template-columns:32px 1fr;gap:8px;margin-bottom:12px}
+.msg .av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--c);font-size:16px}
+.msg .h{font-size:12px;color:var(--muted)}
+.msg .h b{color:var(--ink)}
+.msg .s{font-weight:600}
+.msg .b{white-space:pre-wrap;word-break:break-word;font-size:13px}
+.type{font-size:10px;font-weight:700;border:1px solid var(--line);border-radius:5px;padding:0 4px;margin-left:4px;color:var(--muted)}
+.none{color:var(--muted);font-size:13px}
+@media (max-width:600px){.stage{aspect-ratio:4/5}.agent{transform:scale(.82)}.desk{width:22%;height:9%}.bubble{max-width:170px}header{padding:12px 16px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏢 AI 팀 회의실</h1>
+  <select id="run" aria-label="회의(Run) 선택"></select>
+  <span style="flex:1"></span><span class="live" id="live"><i></i><span>연결 중</span></span>
+  <button id="demo" type="button">데모 보기</button>
+</header>
+<main>
+  <section>
+    <div class="card stage" id="stage">
+      <div class="table"><span id="tableLabel">회의 테이블</span></div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </section>
+  <aside class="card">
+    <div class="tabs">
+      <button type="button" class="on" data-tab="board">작업 보드</button>
+      <button type="button" data-tab="chat">대화 기록</button>
+    </div>
+    <div class="pane" id="board"></div>
+    <div class="pane" id="chat" hidden></div>
+  </aside>
+</main>
+<script>
+const $ = (s) => document.querySelector(s)
+const qs = new URLSearchParams(location.search)
+const token = qs.get('token') ? `token=${encodeURIComponent(qs.get('token'))}&` : ''
+let DEMO = qs.get('demo') === '1'
+let ROLES = { roles: [], fallback: { id: 'member', name: '팀원', emoji: '🤖', color: '#7a8594' }, coordinatorRole: 'pm' }
+let currentRun = qs.get('run') || ''
+let seenMsgs = new Set(), firstLoad = true
+const meetUntil = {} // roleId -> timestamp while gathered at the table
+
+// ---------- layout ----------
+const DESKS = [[14, 18], [50, 12], [86, 18], [86, 84], [50, 90], [14, 84], [14, 51], [86, 51]]
+// Stand on the room side of the desk so nobody walks off the edge
+const atDesk = ([x, y]) => [x, y < 50 ? y + 10 : y > 52 ? y - 10 : y + 10]
+function seatAt(i, n) { // around the oval table
+  const a = (Math.PI * 2 * i) / Math.max(n, 1) - Math.PI / 2
+  return [50 + Math.cos(a) * 21, 52 + Math.sin(a) * 19]
+}
+
+// ---------- roles ----------
+function roleFor(text) {
+  const t = (text || '').toLowerCase()
+  for (const r of ROLES.roles) if (r.match.some((w) => t.includes(w.toLowerCase()))) return r
+  return null
+}
+function roleById(id) { return ROLES.roles.find((r) => r.id === id) || ROLES.fallback }
+
+const AGENT_LABEL = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini', opencode: 'OpenCode', cursor: 'Cursor', copilot: 'Copilot' }
+const agentName = (a) => { if (!a) return ''; const id = a.split('/')[0]; return AGENT_LABEL[id] || id }
+
+// ---------- model ----------
+function buildModel(state) {
+  const members = new Map() // roleId -> member
+  const handleRole = new Map(), dispatchRole = new Map()
+  const coordRole = roleById(ROLES.coordinatorRole)
+  const ensure = (role) => {
+    if (!members.has(role.id)) members.set(role.id, { role, tasks: [], agents: new Set(), status: 'idle', coordinator: false })
+    return members.get(role.id)
+  }
+  const coord = ensure(coordRole); coord.coordinator = true
+  const workersByTask = new Map(state.workers.map((w) => [w.taskId, w]))
+  for (const t of state.tasks) {
+    if (t.created_by_terminal_handle) handleRole.set(t.created_by_terminal_handle, coordRole)
+    const role = roleFor(`${t.display_name || ''} ${t.task_title || ''} ${t.title || ''}`) || ROLES.fallback
+    const m = ensure(role)
+    const w = workersByTask.get(t.id)
+    m.tasks.push({ ...t, worker: w, role })
+    if (w?.agent) m.agents.add(agentName(w.agent))
+    if (w?.terminal) handleRole.set(w.terminal, role)
+    if (w?.dispatchId) dispatchRole.set(w.dispatchId, role)
+  }
+  for (const m of members.values()) {
+    const s = m.tasks.map((t) => t.status)
+    m.status = s.includes('dispatched') ? 'working' : s.includes('blocked') ? 'blocked'
+      : s.includes('failed') ? 'failed' : s.length && s.every((x) => x === 'completed') ? 'done' : 'idle'
+  }
+  if (state.messages.length && !state.tasks.length) handleRole.set(state.messages[0].from_handle, coordRole)
+  const who = (h) => {
+    if (!h) return coordRole
+    if (h.startsWith('run:')) return coordRole
+    if (h.startsWith('dispatch:')) return dispatchRole.get(h.slice(9)) || ROLES.fallback
+    return handleRole.get(h) || (h.startsWith('@') ? null : ROLES.fallback)
+  }
+  const messages = state.messages.map((m) => ({ ...m, fromRole: who(m.from_handle), toRole: who(m.to_handle) }))
+  for (const m of messages) { ensure(m.fromRole); if (m.toRole) ensure(m.toRole) }
+  return { members: [...members.values()], messages }
+}
+
+// ---------- render office ----------
+const stage = $('#stage'), agentEls = new Map()
+function pos(el, [x, y]) {
+  const was = [el.style.left, el.style.top].join()
+  el.style.left = x + '%'; el.style.top = y + '%'
+  if (was !== [el.style.left, el.style.top].join() && was !== ',') {
+    el.classList.add('walking'); clearTimeout(el._w); el._w = setTimeout(() => el.classList.remove('walking'), 1400)
+  }
+}
+function renderOffice(model) {
+  stage.querySelectorAll('.empty').forEach((e) => e.remove())
+  if (!model.members.length || (!model.messages.length && model.members.every((m) => !m.tasks.length))) {
+    const e = document.createElement('div'); e.className = 'empty'
+    e.innerHTML = currentRun ? '아직 이 회의에 작업이나 대화가 없어요.<br>Orca에서 PM에게 팀 프롬프트로 일을 맡겨보세요.' : '진행 중인 회의(Run)가 없어요.<br>오른쪽 위 “데모 보기”로 미리 볼 수 있어요.'
+    stage.appendChild(e)
+  }
+  const now = Date.now()
+  const ids = model.members.map((m) => m.role.id)
+  // desks
+  stage.querySelectorAll('.desk').forEach((d) => { if (!ids.includes(d.dataset.id)) d.remove() })
+  const meeting = model.members.filter((m) => (meetUntil[m.role.id] || 0) > now)
+  model.members.forEach((m, i) => {
+    const deskPos = DESKS[i % DESKS.length]
+    let desk = stage.querySelector(`.desk[data-id="${m.role.id}"]`)
+    if (!desk) { desk = document.createElement('div'); desk.className = 'desk'; desk.dataset.id = m.role.id; desk.innerHTML = '<div class="screen"></div><b></b>'; stage.appendChild(desk) }
+    desk.style.left = deskPos[0] + '%'; desk.style.top = deskPos[1] + '%'
+    desk.querySelector('b').textContent = m.role.name + '의 자리'
+    desk.classList.toggle('busy', m.status === 'working')
+    let el = agentEls.get(m.role.id)
+    if (!el) {
+      el = document.createElement('div'); el.className = 'agent'
+      el.innerHTML = '<div class="bubble"></div><div class="body"></div><span class="dot"></span><span class="badge"></span><span class="name"></span>'
+      stage.appendChild(el); agentEls.set(m.role.id, el)
+      el.style.left = deskPos[0] + '%'; el.style.top = atDesk(deskPos)[1] + '%'
+    }
+    el.style.setProperty('--c', m.role.color)
+    el.dataset.s = m.status
+    el.querySelector('.body').textContent = m.role.emoji
+    el.querySelector('.name').textContent = m.role.name + (m.coordinator ? ' (리드)' : '')
+    const badge = [...m.agents].join('·')
+    el.querySelector('.badge').textContent = badge; el.querySelector('.badge').hidden = !badge
+    const mi = meeting.indexOf(m)
+    pos(el, mi >= 0 ? seatAt(mi, meeting.length) : atDesk(deskPos))
+  })
+  for (const [id, el] of agentEls) if (!ids.includes(id)) { el.remove(); agentEls.delete(id) }
+  $('#tableLabel').textContent = meeting.length >= 2 ? `회의 중 · ${meeting.length}명` : '회의 테이블'
+  $('#legend').innerHTML = model.members.map((m) => `<span style="--c:${m.role.color}">${m.role.emoji} ${m.role.name}${m.agents.size ? ' – ' + [...m.agents].join(', ') : ''}</span>`).join('')
+}
+
+function say(roleId, msg) {
+  const el = agentEls.get(roleId); if (!el) return
+  const b = el.querySelector('.bubble')
+  const text = (msg.subject || '') + (msg.body ? ' – ' + msg.body : '')
+  b.innerHTML = `<em>${esc(typeLabel(msg.type))}</em>${esc(text.length > 90 ? text.slice(0, 88) + '…' : text)}`
+  b.classList.add('on'); clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('on'), 7000)
+}
+function fly(fromId, toId) {
+  const a = agentEls.get(fromId), b = agentEls.get(toId); if (!a || !b || a === b) return
+  const m = document.createElement('div'); m.className = 'mail'; m.textContent = '✉️'
+  m.style.left = a.style.left; m.style.top = a.style.top; stage.appendChild(m)
+  requestAnimationFrame(() => requestAnimationFrame(() => { m.style.left = b.style.left; m.style.top = b.style.top }))
+  setTimeout(() => { m.style.opacity = 0; setTimeout(() => m.remove(), 300) }, 1100)
+}
+
+// ---------- side panels ----------
+const COLS = [['진행 중', ['dispatched']], ['대기', ['pending', 'ready']], ['막힘', ['blocked']], ['완료', ['completed']], ['실패', ['failed']]]
+const STATUS_KO = { pending: '대기', ready: '준비됨', dispatched: '진행 중', blocked: '막힘', completed: '완료', failed: '실패' }
+function renderBoard(model) {
+  const tasks = model.members.flatMap((m) => m.tasks)
+  if (!tasks.length) { $('#board').innerHTML = '<p class="none">아직 작업이 없어요.</p>'; return }
+  $('#board').innerHTML = COLS.map(([label, ss]) => {
+    const list = tasks.filter((t) => ss.includes(t.status))
+    if (!list.length) return ''
+    return `<div class="col"><h3><span>${label}</span><span>${list.length}</span></h3>${list.map((t) => `
+      <div class="task" style="--c:${t.role.color}">
+        <div class="t">${esc(t.task_title || t.display_name || t.title || t.id)}</div>
+        <div class="m">${t.role.emoji} ${esc(t.role.name)}${t.worker?.agent ? ' · ' + esc(agentName(t.worker.agent)) : ''} · ${STATUS_KO[t.status] || t.status}</div>
+        ${t.result ? `<div class="r">${esc(String(t.result).slice(0, 400))}</div>` : ''}
+      </div>`).join('')}</div>`
+  }).join('')
+}
+const TYPE_KO = { status: '상황 공유', dispatch: '업무 배정', worker_done: '작업 완료', merge_ready: '병합 준비', escalation: '도움 요청', handoff: '인계', decision_gate: '결정 필요', question: '질문', heartbeat: '진행 중' }
+const typeLabel = (t) => TYPE_KO[t] || t || '메시지'
+function renderChat(model) {
+  const list = model.messages.filter((m) => m.type !== 'heartbeat').slice(-150).reverse()
+  if (!list.length) { $('#chat').innerHTML = '<p class="none">아직 대화가 없어요.</p>'; return }
+  $('#chat').innerHTML = list.map((m) => `
+    <div class="msg"><div class="av" style="--c:${m.fromRole.color}">${m.fromRole.emoji}</div><div>
+      <div class="h"><b>${esc(m.fromRole.name)}</b> → ${esc(m.toRole ? m.toRole.name : m.to_handle?.startsWith('@') ? '모두' : m.to_handle)} · ${time(m.created_at)}<span class="type">${esc(typeLabel(m.type))}</span></div>
+      <div class="s">${esc(m.subject || '')}</div>${m.body ? `<div class="b">${esc(m.body.slice(0, 1200))}</div>` : ''}
+    </div></div>`).join('')
+}
+document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b))
+  $('#board').hidden = b.dataset.tab !== 'board'; $('#chat').hidden = b.dataset.tab !== 'chat'
+})
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+const time = (s) => { const d = new Date(String(s).replace(' ', 'T') + (/Z|[+-]\d\d:?\d\d$/.test(s) ? '' : 'Z')); return isNaN(d) ? '' : d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) }
+
+// ---------- data ----------
+async function api(p) { const r = await fetch(`${p}${p.includes('?') ? '&' : '?'}${token}`); if (!r.ok) throw new Error(r.status); return r.json() }
+async function getRuns() { return DEMO ? demo.runs() : (await api('/api/runs')).list }
+async function getRun(id) { return DEMO ? demo.run() : api(`/api/run?id=${encodeURIComponent(id)}`) }
+
+async function refreshRunList() {
+  const runs = await getRuns()
+  const sel = $('#run'), prev = currentRun
+  sel.innerHTML = runs.length ? runs.map((r) => `<option value="${esc(r.id)}">${esc(r.objective || r.id)}</option>`).join('') : '<option value="">회의 없음</option>'
+  if (!runs.some((r) => r.id === prev)) currentRun = runs[0]?.id || ''
+  sel.value = currentRun
+}
+$('#run').onchange = (e) => { currentRun = e.target.value; resetView(); tick() }
+$('#demo').onclick = () => { DEMO = !DEMO; $('#demo').textContent = DEMO ? '실제 데이터 보기' : '데모 보기'; demo.reset(); resetView(); refreshRunList().then(tick) }
+function resetView() { seenMsgs = new Set(); firstLoad = true; for (const k in meetUntil) delete meetUntil[k] }
+
+async function tick() {
+  try {
+    const state = currentRun ? await getRun(currentRun) : { tasks: [], workers: [], messages: [] }
+    const model = buildModel(state)
+    const fresh = model.messages.filter((m) => !seenMsgs.has(m.id))
+    fresh.forEach((m) => seenMsgs.add(m.id))
+    const now = Date.now()
+    if (!firstLoad) for (const m of fresh) {
+      if (m.type === 'heartbeat') continue
+      meetUntil[m.fromRole.id] = now + 25000
+      if (m.toRole) meetUntil[m.toRole.id] = now + 25000
+      else model.members.forEach((x) => (meetUntil[x.role.id] = now + 25000)) // group mail: everyone gathers
+    }
+    renderOffice(model); renderBoard(model); renderChat(model)
+    if (!firstLoad) fresh.filter((m) => m.type !== 'heartbeat').forEach((m, i) => setTimeout(() => {
+      say(m.fromRole.id, m); if (m.toRole) fly(m.fromRole.id, m.toRole.id)
+    }, 1500 + i * 1800))
+    firstLoad = false
+    $('#live').className = 'live'; $('#live span').textContent = DEMO ? '데모' : '실시간'
+  } catch (e) {
+    $('#live').className = 'live off'; $('#live span').textContent = '연결 끊김'
+  }
+}
+
+// ---------- demo ----------
+const demo = (() => {
+  const H = { pm: 'term_pm', dev: 'term_dev', design: 'term_design', analyst: 'term_analyst', qa: 'term_qa' }
+  const script = [
+    ['task', 'pm', '[PM] 요구사항과 일정 정리', 'claude', 'dispatched'],
+    ['msg', 'pm', '@all', 'status', '킥오프', '오늘 목표는 카페 예약 랜딩 페이지예요. 각자 맡은 일 확인해주세요.'],
+    ['task', 'analyst', '[분석] 경쟁 서비스 3곳 조사', 'gemini', 'dispatched'],
+    ['task', 'design', '[디자인] 메인 화면 시안', 'gemini', 'dispatched'],
+    ['task', 'dev', '[개발] 예약 폼과 API 구현', 'codex', 'pending'],
+    ['msg', 'analyst', 'pm', 'status', '조사 시작', '비슷한 서비스 3곳의 예약 흐름을 비교할게요.'],
+    ['msg', 'design', 'analyst', 'question', '타깃 사용자?', '주 사용자가 20대인지 직장인인지 알 수 있을까요?'],
+    ['msg', 'analyst', 'design', 'status', '답변', '평일 점심 직장인이 60%예요. 모바일 우선으로 가면 좋아요.'],
+    ['done', 'analyst', '경쟁사 3곳 모두 3단계 이하 예약. 모바일 우선 권장.'],
+    ['msg', 'analyst', 'pm', 'worker_done', '조사 완료', '요약을 작업 결과에 남겼어요.'],
+    ['start', 'dev'],
+    ['msg', 'pm', 'dev', 'dispatch', '개발 시작', '분석 결과 반영해서 3단계 예약 폼으로 구현해주세요.'],
+    ['msg', 'dev', 'design', 'question', '버튼 색상', '예약 버튼 메인 컬러 코드 알려주세요.'],
+    ['msg', 'design', 'dev', 'handoff', '시안 전달', '메인 #7C5CFF, 버튼 radius 12px. Figma 링크 첨부했어요.'],
+    ['done', 'design', '메인/예약/완료 화면 시안 3장'],
+    ['task', 'qa', '[QA] 예약 흐름 테스트', 'claude', 'pending'],
+    ['msg', 'dev', 'pm', 'merge_ready', 'PR 준비', '예약 폼과 API PR 올렸어요. 테스트 12개 통과.'],
+    ['done', 'dev', 'PR #12: 예약 폼 + /api/reserve'],
+    ['start', 'qa'],
+    ['msg', 'qa', 'dev', 'escalation', '버그 발견', '날짜를 비우면 500 에러가 나요.'],
+    ['msg', 'dev', 'qa', 'status', '수정 완료', '빈 날짜 검증 추가했어요. 다시 확인 부탁해요.'],
+    ['done', 'qa', '주요 흐름 5개 통과'],
+    ['msg', 'pm', '@all', 'status', '마무리', '모두 수고했어요! 오늘 결과를 정리해서 공유할게요.'],
+    ['done', 'pm', '랜딩 페이지 1차 완료']
+  ]
+  let step = 0, started = 0, tasks = [], workers = [], messages = [], seq = 0
+  const reset = () => { step = 0; started = Date.now(); tasks = []; workers = []; messages = []; seq = 0 }
+  const advance = () => {
+    const due = Math.floor((Date.now() - started) / 3500) + 1
+    while (step < Math.min(due, script.length)) {
+      const [k, r, ...a] = script[step++]
+      if (k === 'task') { const id = 'task_' + r; tasks.push({ id, task_title: a[0], display_name: a[0], status: a[2], created_by_terminal_handle: H.pm, result: null }); workers.push({ taskId: id, dispatchId: 'd_' + r, agent: a[1], terminal: H[r] }) }
+      if (k === 'start') tasks.find((t) => t.id === 'task_' + r).status = 'dispatched'
+      if (k === 'done') Object.assign(tasks.find((t) => t.id === 'task_' + r), { status: 'completed', result: a[0] })
+      if (k === 'msg') messages.push({ id: 'm' + ++seq, run_id: 'run_demo', from_handle: H[r], to_handle: a[0] === '@all' ? '@all' : a[0] === 'pm' ? 'run:run_demo' : 'dispatch:d_' + a[0], type: a[1], subject: a[2], body: a[3], created_at: new Date().toISOString() })
+    }
+    if (step >= script.length && Date.now() - started > script.length * 3500 + 15000) reset()
+  }
+  return {
+    reset,
+    runs: () => [{ id: 'run_demo', objective: '데모: 카페 예약 랜딩 페이지 만들기' }],
+    run: () => { if (!started) reset(); advance(); return { tasks: structuredClone(tasks), workers: structuredClone(workers), messages: structuredClone(messages) } }
+  }
+})()
+
+// ---------- start ----------
+;(async () => {
+  try { ROLES = await (DEMO ? fetch(`/api/roles?${token}`).then((r) => r.json()).catch(() => null) : api('/api/roles')) || ROLES } catch {}
+  if (!ROLES.roles?.length) ROLES = { ...ROLES, roles: [
+    { id: 'pm', name: 'PM', emoji: '🧭', color: '#7c5cff', match: ['pm', '기획'] },
+    { id: 'dev', name: '개발자', emoji: '💻', color: '#1f9d6b', match: ['dev', '개발'] },
+    { id: 'design', name: '디자이너', emoji: '🎨', color: '#e0598b', match: ['design', '디자인'] },
+    { id: 'analyst', name: '분석가', emoji: '📊', color: '#e8a33d', match: ['analyst', '분석'] },
+    { id: 'qa', name: 'QA·리뷰어', emoji: '🔍', color: '#3a86d4', match: ['qa', 'test', '리뷰'] }] }
+  if (DEMO) $('#demo').textContent = '실제 데이터 보기'
+  try { await refreshRunList() } catch { $('#live').className = 'live off'; $('#live span').textContent = '연결 끊김' }
+  await tick()
+  setInterval(tick, DEMO ? 1500 : 4000)
+  setInterval(() => refreshRunList().catch(() => {}), 20000)
+})()
+</script>
+</body>
+</html>

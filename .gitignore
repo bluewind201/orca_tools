@@ -1,0 +1,5 @@
+# Real settings and data live only on the NAS
+docker-compose.yml
+home/
+workspace/
+*.log
