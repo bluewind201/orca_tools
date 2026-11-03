@@ -94,6 +94,11 @@ createServer(async (req, res) => {
       if (!/^run_[A-Za-z0-9_]+$/.test(id)) return send(res, 400, { error: 'bad run id' })
       return send(res, 200, await getRun(id))
     }
+    if (url.pathname === '/api/live') {
+      // Every Orca workspace and the agents running in it, orchestrated or not
+      const r = await orca(['worktree', 'ps', '--limit', '200'])
+      return send(res, 200, { worktrees: (r.worktrees || []).filter((w) => !w.isArchived), error: r.error, at: Date.now() })
+    }
     if (url.pathname === '/healthz') return send(res, 200, { ok: true })
     send(res, 404, { error: 'not found' })
   } catch (e) {

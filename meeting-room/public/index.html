@@ -165,7 +165,7 @@ let DEMO = qs.get('demo') === '1'
 let ROLES = { roles: [], fallback: { id: 'member', name: '팀원', emoji: '🤖', color: '#7a8594' }, coordinatorRole: 'pm' }
 let currentRun = qs.get('run') || ''
 let seenMsgs = new Set(), firstLoad = true
-const meetUntil = {} // roleId -> timestamp while gathered at the table
+const meetUntil = {} // member key -> timestamp while gathered at the table
 
 // ---------- layout ----------
 // Logical floor coordinates: x 0-100 left→right, y 0-100 back wall→viewer.
@@ -285,7 +285,7 @@ function buildModel(state) {
   const handleRole = new Map(), dispatchRole = new Map()
   const coordRole = roleById(ROLES.coordinatorRole)
   const ensure = (role) => {
-    if (!members.has(role.id)) members.set(role.id, { role, tasks: [], agents: new Set(), status: 'idle', coordinator: false })
+    if (!members.has(role.id)) members.set(role.id, { key: role.id, role, tasks: [], agents: new Set(), status: 'idle', coordinator: false })
     return members.get(role.id)
   }
   const coord = ensure(coordRole); coord.coordinator = true
@@ -312,9 +312,40 @@ function buildModel(state) {
     if (h.startsWith('dispatch:')) return dispatchRole.get(h.slice(9)) || ROLES.fallback
     return handleRole.get(h) || (h.startsWith('@') ? null : ROLES.fallback)
   }
-  const messages = state.messages.map((m) => ({ ...m, fromRole: who(m.from_handle), toRole: who(m.to_handle) }))
+  const messages = state.messages.map((m) => { const fromRole = who(m.from_handle), toRole = who(m.to_handle); return { ...m, fromRole, toRole, fromKey: fromRole.id, toKey: toRole?.id } })
   for (const m of messages) { ensure(m.fromRole); if (m.toRole) ensure(m.toRole) }
   return { members: [...members.values()], messages }
+}
+
+// Live mode: every Orca workspace agent, even without an orchestration Run.
+const AGENT_ROLE = { claude: 'pm', codex: 'dev', gemini: 'analyst', opencode: 'dev', cursor: 'design', copilot: 'qa' }
+const LIVE_STATUS = { working: 'working', blocked: 'blocked', waiting: 'blocked', done: 'done' }
+const LIVE_TASK = { working: 'dispatched', blocked: 'blocked', waiting: 'blocked', done: 'completed' }
+const liveLog = [], liveSeen = new Map()
+const short = (t, n = 14) => { t = String(t || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n - 1) + '…' : t }
+function buildLiveModel(live) {
+  const members = []
+  for (const wt of live.worktrees || []) {
+    const rows = (wt.agents || []).filter((a) => !a.parentPaneKey)
+    for (const a of rows) {
+      const label = a.conversationName || a.taskTitle || a.displayName || wt.displayName || wt.repo
+      const type = String(a.agentType || '').toLowerCase()
+      const role = roleFor(`${a.taskTitle || ''} ${a.displayName || ''} ${a.conversationName || ''} ${wt.displayName || ''}`) || (AGENT_ROLE[type] && roleById(AGENT_ROLE[type])) || ROLES.fallback
+      const text = a.state === 'waiting' ? '입력을 기다리는 중' + (a.lastAssistantMessage ? ' – ' + a.lastAssistantMessage : '')
+        : a.toolName ? `🔧 ${a.toolName}${a.toolInput ? ' – ' + a.toolInput : ''}` : a.lastAssistantMessage || ''
+      const m = { key: a.paneKey, role, label: short(label), agents: new Set(a.agentType ? [agentName(a.agentType)] : []), status: LIVE_STATUS[a.state] || 'idle', coordinator: false,
+        tasks: [{ id: a.paneKey, task_title: `${wt.repo || ''} · ${label}`, status: LIVE_TASK[a.state] || 'pending', role, worker: { agent: a.agentType }, result: a.state === 'done' ? a.lastAssistantMessage : (a.prompt ? '요청: ' + a.prompt : null) }] }
+      members.push(m)
+      const sig = `${a.state}|${a.toolName || ''}|${(a.lastAssistantMessage || '').slice(0, 200)}`
+      if (text && liveSeen.get(a.paneKey) !== sig) {
+        liveSeen.set(a.paneKey, sig)
+        liveLog.push({ id: `${a.paneKey}:${a.updatedAt}:${liveLog.length}`, live: true, fromKey: a.paneKey, fromRole: role, toRole: null, toKey: null, to_handle: wt.displayName || wt.repo,
+          type: a.state === 'waiting' ? 'question' : a.state === 'done' ? 'worker_done' : 'status', subject: m.label, body: text.slice(0, 600), created_at: new Date(a.updatedAt || Date.now()).toISOString() })
+        if (liveLog.length > 300) liveLog.shift()
+      }
+    }
+  }
+  return { members, messages: liveLog.slice() }
 }
 
 // ---------- render office ----------
@@ -330,34 +361,34 @@ function renderOffice(model) {
   stage.querySelectorAll('.empty').forEach((e) => e.remove())
   if (!model.members.length || (!model.messages.length && model.members.every((m) => !m.tasks.length))) {
     const e = document.createElement('div'); e.className = 'empty'
-    e.innerHTML = '<p>' + (currentRun ? '아직 이 회의에 작업이나 대화가 없어요.<br>Orca에서 PM에게 팀 프롬프트로 일을 맡겨보세요.' : '진행 중인 회의(Run)가 없어요.<br>오른쪽 위 “데모 보기”로 미리 볼 수 있어요.') + '</p>'
+    e.innerHTML = '<p>' + (currentRun === 'live' ? '지금 실행 중인 AI 에이전트가 없어요.<br>Orca에서 작업공간을 열고 에이전트를 시작하면 여기 나타나요.' : currentRun ? '아직 이 회의에 작업이나 대화가 없어요.<br>Orca에서 PM에게 팀 프롬프트로 일을 맡겨보세요.' : '진행 중인 회의(Run)가 없어요.<br>오른쪽 위 “데모 보기”로 미리 볼 수 있어요.') + '</p>'
     stage.appendChild(e)
   }
   const now = Date.now()
-  const ids = model.members.map((m) => m.role.id)
+  const ids = model.members.map((m) => m.key)
   stage.querySelectorAll('.desk').forEach((d) => { if (!ids.includes(d.dataset.id)) d.remove() })
-  const meeting = model.members.filter((m) => (meetUntil[m.role.id] || 0) > now)
+  const meeting = model.members.filter((m) => (meetUntil[m.key] || 0) > now)
   model.members.forEach((m, i) => {
     const deskPos = DESKS[i % DESKS.length]
-    let desk = stage.querySelector(`.desk[data-id="${m.role.id}"]`)
+    let desk = [...stage.querySelectorAll('.desk')].find((d) => d.dataset.id === m.key)
     if (!desk) {
-      desk = document.createElement('div'); desk.className = 'prop desk'; desk.dataset.id = m.role.id
+      desk = document.createElement('div'); desk.className = 'prop desk'; desk.dataset.id = m.key
       desk.innerHTML = '<div class="sc"><div class="mon"></div><div class="top"></div><div class="mug"></div><div class="plate"></div></div>'
       stage.appendChild(desk)
     }
     place(desk, proj(deskPos))
     desk.style.setProperty('--c', m.role.color)
-    desk.querySelector('.plate').textContent = m.role.name
+    desk.querySelector('.plate').textContent = m.label ? m.role.name + ' · ' + m.label : m.role.name
     desk.classList.toggle('busy', m.status === 'working')
-    let el = agentEls.get(m.role.id)
+    let el = agentEls.get(m.key)
     if (!el) {
       el = document.createElement('div'); el.className = 'agent'
       el.innerHTML = `<div class="bubble"></div><div class="sc"><div class="shadow"></div>${marten(m.role.id, m.role.color)}<span class="dot"></span><span class="badge"></span><span class="name"></span></div>`
-      stage.appendChild(el); agentEls.set(m.role.id, el)
+      stage.appendChild(el); agentEls.set(m.key, el)
     }
     el.style.setProperty('--c', m.role.color)
     el.dataset.s = m.status
-    el.querySelector('.name').textContent = m.role.name + (m.coordinator ? ' (리드)' : '')
+    el.querySelector('.name').textContent = (m.label || m.role.name) + (m.coordinator ? ' (리드)' : '')
     const badge = [...m.agents].join('·')
     el.querySelector('.badge').textContent = badge; el.querySelector('.badge').hidden = !badge
     const mi = meeting.indexOf(m)
@@ -365,14 +396,14 @@ function renderOffice(model) {
   })
   for (const [id, el] of agentEls) if (!ids.includes(id)) { el.remove(); agentEls.delete(id) }
   $('#tableLabel').textContent = meeting.length >= 2 ? `회의 중 · ${meeting.length}명` : '회의 테이블'
-  $('#legend').innerHTML = model.members.map((m) => `<span style="--c:${m.role.color}">${m.role.name}${m.agents.size ? ' – ' + [...m.agents].join(', ') : ''}</span>`).join('')
+  $('#legend').innerHTML = model.members.map((m) => `<span style="--c:${m.role.color}">${m.label ? m.label + ' (' + m.role.name + ')' : m.role.name}${m.agents.size ? ' – ' + [...m.agents].join(', ') : ''}</span>`).join('')
 }
 
 const LIM = () => (stage.clientWidth < 520 ? 44 : 90)
-function say(roleId, msg) {
-  const el = agentEls.get(roleId); if (!el) return
+function say(key, msg) {
+  const el = agentEls.get(key); if (!el) return
   const b = el.querySelector('.bubble')
-  const text = (msg.subject || '') + (msg.body ? ' – ' + msg.body : '')
+  const text = msg.live ? msg.body || '' : (msg.subject || '') + (msg.body ? ' – ' + msg.body : '')
   b.innerHTML = `<em>${esc(typeLabel(msg.type))}</em>${esc(text.length > LIM() ? text.slice(0, LIM() - 2) + '…' : text)}`
   b.classList.add('on'); el.style.zIndex = 5000; clearTimeout(b._t)
   b._t = setTimeout(() => { b.classList.remove('on'); if (el._xy) el.style.zIndex = proj(el._xy).z + 5 }, 7000)
@@ -387,7 +418,7 @@ function fly(fromId, toId) {
 }
 
 // ---------- side panels ----------
-const COLS = [['진행 중', ['dispatched']], ['대기', ['pending', 'ready']], ['막힘', ['blocked']], ['완료', ['completed']], ['실패', ['failed']]]
+const COLS = [['진행 중', ['dispatched']], ['대기', ['pending', 'ready']], ['막힘·입력 대기', ['blocked']], ['완료', ['completed']], ['실패', ['failed']]]
 const STATUS_KO = { pending: '대기', ready: '준비됨', dispatched: '진행 중', blocked: '막힘', completed: '완료', failed: '실패' }
 function renderBoard(model) {
   const tasks = model.members.flatMap((m) => m.tasks)
@@ -410,8 +441,8 @@ function renderChat(model) {
   if (!list.length) { $('#chat').innerHTML = '<p class="none">아직 대화가 없어요.</p>'; return }
   $('#chat').innerHTML = list.map((m) => `
     <div class="msg"><div class="av" style="--c:${m.fromRole.color}">${marten(m.fromRole.id, m.fromRole.color, { headOnly: true })}</div><div>
-      <div class="h"><b>${esc(m.fromRole.name)}</b> → ${esc(m.toRole ? m.toRole.name : m.to_handle?.startsWith('@') ? '모두' : m.to_handle)} · ${time(m.created_at)}<span class="type">${esc(typeLabel(m.type))}</span></div>
-      <div class="s">${esc(m.subject || '')}</div>${m.body ? `<div class="b">${esc(m.body.slice(0, 1200))}</div>` : ''}
+      <div class="h"><b>${esc(m.live ? m.subject : m.fromRole.name)}</b> → ${esc(m.live ? m.to_handle : m.toRole ? m.toRole.name : m.to_handle?.startsWith('@') ? '모두' : m.to_handle)} · ${time(m.created_at)}<span class="type">${esc(typeLabel(m.type))}</span></div>
+      ${m.live ? '' : `<div class="s">${esc(m.subject || '')}</div>`}${m.body ? `<div class="b">${esc(m.body.slice(0, 1200))}</div>` : ''}
     </div></div>`).join('')
 }
 document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
@@ -423,8 +454,9 @@ const time = (s) => { const d = new Date(String(s).replace(' ', 'T') + (/Z|[+-]\
 
 // ---------- data ----------
 async function api(p) { const r = await fetch(`${p}${p.includes('?') ? '&' : '?'}${token}`); if (!r.ok) throw new Error(r.status); return r.json() }
-async function getRuns() { return DEMO ? demo.runs() : (await api('/api/runs')).list }
-async function getRun(id) { return DEMO ? demo.run() : api(`/api/run?id=${encodeURIComponent(id)}`) }
+const LIVE = { id: 'live', objective: '지금 돌아가는 작업공간 전체' }
+async function getRuns() { return DEMO ? demo.runs() : [LIVE, ...(await api('/api/runs')).list] }
+async function getRun(id) { return DEMO ? demo.run() : id === 'live' ? { live: await api('/api/live') } : api(`/api/run?id=${encodeURIComponent(id)}`) }
 
 async function refreshRunList() {
   const runs = await getRuns()
@@ -436,24 +468,25 @@ async function refreshRunList() {
 }
 $('#run').onchange = (e) => { currentRun = e.target.value; OBJECTIVE = e.target.selectedOptions[0]?.textContent || ''; resetView(); tick() }
 $('#demo').onclick = () => { DEMO = !DEMO; $('#demo').textContent = DEMO ? '실제 데이터 보기' : '데모 보기'; demo.reset(); resetView(); refreshRunList().then(tick) }
-function resetView() { seenMsgs = new Set(); firstLoad = true; for (const k in meetUntil) delete meetUntil[k] }
+function resetView() { seenMsgs = new Set(); firstLoad = true; liveLog.length = 0; liveSeen.clear(); for (const k in meetUntil) delete meetUntil[k] }
 
 async function tick() {
   try {
     const state = currentRun ? await getRun(currentRun) : { tasks: [], workers: [], messages: [] }
-    const model = buildModel(state)
+    const model = state.live ? buildLiveModel(state.live) : buildModel(state)
     const fresh = model.messages.filter((m) => !seenMsgs.has(m.id))
     fresh.forEach((m) => seenMsgs.add(m.id))
     const now = Date.now()
     if (!firstLoad) for (const m of fresh) {
       if (m.type === 'heartbeat') continue
-      meetUntil[m.fromRole.id] = now + 25000
-      if (m.toRole) meetUntil[m.toRole.id] = now + 25000
-      else model.members.forEach((x) => (meetUntil[x.role.id] = now + 25000)) // group mail: everyone gathers
+      if (m.live) continue // workspace chatter: speak at the desk, no gathering
+      meetUntil[m.fromKey] = now + 25000
+      if (m.toKey) meetUntil[m.toKey] = now + 25000
+      else model.members.forEach((x) => (meetUntil[x.key] = now + 25000)) // group mail: everyone gathers
     }
     renderOffice(model); renderBoard(model); renderChat(model)
     if (!firstLoad) fresh.filter((m) => m.type !== 'heartbeat').forEach((m, i) => setTimeout(() => {
-      say(m.fromRole.id, m); if (m.toRole) fly(m.fromRole.id, m.toRole.id)
+      say(m.fromKey, m); if (m.toKey) fly(m.fromKey, m.toKey)
     }, 1500 + i * 1800))
     firstLoad = false
     $('#live').className = 'live'; $('#live span').textContent = DEMO ? '데모' : '실시간'
