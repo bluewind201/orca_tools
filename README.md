@@ -45,7 +45,7 @@ sudo docker logs -f paseo                # "[paseo] starting daemon" 이 보이�
   cp -a home/.claude/. paseo-home/.claude/ ; cp -a home/.claude.json paseo-home/.claude/ 2>/dev/null
   cp -a home/.codex home/.gemini home/.gitconfig paseo-home/ 2>/dev/null ; cp -a home/.config/gh paseo-home/.config/ 2>/dev/null
   ```
-- Orca로 되돌리고 싶으면 `git checkout orca-final` 후 `sudo docker compose up -d --build --remove-orphans` 하면 됩니다.
+- Orca로 되돌리고 싶으면 `git checkout f20b0c4` (Orca 마지막 버전) 후 `sudo docker compose up -d --build --remove-orphans` 하면 됩니다.
 
 ## 처음 설치하는 경우
 
