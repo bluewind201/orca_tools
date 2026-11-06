@@ -1,5 +1,6 @@
 # Personal settings and data live only on the NAS
 .env
 home/
+paseo-home/
 workspace/
 *.log

@@ -1,12 +1,54 @@
 {
-  "_help": "Each Orca task's display name or title is matched against `match` words (case-insensitive) to pick a role. The coordinator (the agent that created the run) is shown as `coordinatorRole`.",
-  "coordinatorRole": "pm",
+  "_help": "Paseo 에이전트 제목(--title)에 match 단어가 있으면 그 역할로, 없으면 provider(gemini/claude/codex)로 역할을 정합니다. 저장 후 새로고침하면 반영돼요.",
   "roles": [
-    { "id": "pm",       "name": "PM",       "emoji": "🧭", "color": "#7c5cff", "match": ["pm", "기획", "매니저", "manager", "coordinator", "리드"] },
-    { "id": "dev",      "name": "개발자",   "emoji": "💻", "color": "#1f9d6b", "match": ["dev", "개발", "엔지니어", "engineer", "backend", "frontend", "구현"] },
-    { "id": "design",   "name": "디자이너", "emoji": "🎨", "color": "#e0598b", "match": ["design", "디자인", "ui", "ux"] },
-    { "id": "analyst",  "name": "분석가",   "emoji": "📊", "color": "#e8a33d", "match": ["analyst", "분석", "research", "리서치", "data"] },
-    { "id": "qa",       "name": "QA·리뷰어", "emoji": "🔍", "color": "#3a86d4", "match": ["qa", "test", "테스트", "review", "리뷰", "검증"] }
+    {
+      "id": "pm",
+      "name": "PM",
+      "emoji": "🧭",
+      "color": "#7c5cff",
+      "provider": "gemini",
+      "match": [
+        "[pm]",
+        "기획",
+        "리드"
+      ]
+    },
+    {
+      "id": "dev",
+      "name": "개발·리뷰",
+      "emoji": "💻",
+      "color": "#1f9d6b",
+      "provider": "claude",
+      "match": [
+        "[개발]",
+        "[리뷰]",
+        "개발",
+        "리뷰",
+        "review"
+      ]
+    },
+    {
+      "id": "design",
+      "name": "디자이너",
+      "emoji": "🎨",
+      "color": "#e0598b",
+      "provider": "codex",
+      "match": [
+        "[디자인]",
+        "디자인",
+        "design"
+      ]
+    }
   ],
-  "fallback": { "id": "member", "name": "팀원", "emoji": "🤖", "color": "#7a8594" }
+  "fallback": {
+    "id": "member",
+    "name": "팀원",
+    "emoji": "🤖",
+    "color": "#7a8594"
+  },
+  "owner": {
+    "name": "사장님",
+    "emoji": "🙋"
+  },
+  "coordinatorRole": "pm"
 }
