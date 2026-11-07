@@ -17,7 +17,8 @@ AI 팀은 3명입니다: **PM = Gemini**, **개발·리뷰 = Claude**, **디자�
 | `Dockerfile` | 공식 `ghcr.io/getpaseo/paseo` 이미지 + Claude Code·Codex·Gemini CLI + gh + 회의실 |
 | `nas-entrypoint.sh` | 사용자 권한 맞추기, Gemini 등록, 회의실 실행 후 Paseo 시작 (Windows·NAS 공용) |
 | `docker-compose.yml` | 포트, 볼륨, 환경변수 (개인 값은 `.env`) |
-| `start-meeting-room.cmd` | A 방법: 이 PC의 Paseo에 회의실만 붙여 실행 (더블클릭) |
+| `meeting-room-on.cmd` / `meeting-room-off.cmd` | A 방법: 회의실을 창 없이 백그라운드로 켜기(로그인 때 자동 시작) / 끄기 |
+| `start-meeting-room.cmd` | A 방법: 회의실을 창에서 실행 (오류 확인용) |
 | `meeting-room/` | AI 팀 회의실 페이지와 [`TEAM_PROMPT.md`](meeting-room/TEAM_PROMPT.md) (3명 팀 지시문) |
 
 ## 어떤 방법으로 설치할까요?
@@ -48,10 +49,10 @@ B로 가려면 Paseo Desktop을 끄거나, 컨테이너 쪽을 다른 포트(예
    cd $HOME
    git clone https://github.com/bluewind201/paseo_tools
    ```
-4. **`paseo_tools\start-meeting-room.cmd`를 더블클릭합니다.** 처음 한 번 필요한 패키지를 받고, Gemini를 Paseo에 등록합니다(`%USERPROFILE%\.paseo\config.json`).
+4. **`paseo_tools\meeting-room-on.cmd`를 더블클릭합니다.** 처음 한 번 필요한 패키지를 받고, Gemini를 Paseo에 등록합니다(`%USERPROFILE%\.paseo\config.json`).
    등록 메시지가 나오면 Paseo Desktop을 한 번 껐다 켜세요. 그러면 새 에이전트 만들 때 Gemini가 보입니다.
-5. 브라우저에서 `http://localhost:6769` 를 엽니다. 이 창이 켜져 있는 동안 회의실이 돌아갑니다.
-   PC를 켤 때 자동으로 띄우려면 `start-meeting-room.cmd`의 바로가기를 `shell:startup` 폴더(Win+R에 입력)에 넣으세요.
+5. 브라우저에서 `http://localhost:6769` 를 엽니다. 회의실은 창 없이 뒤에서 돌기 때문에 검은 창은 닫아도 되고, Windows에 로그인할 때마다 자동으로 다시 켜집니다.
+   끄려면 `meeting-room-off.cmd`(자동 시작도 해제). 안 켜지면 `start-meeting-room.cmd`로 창에서 실행해 오류를 보거나 `meeting-room\meeting-room.log`를 확인하세요.
 6. 폰은 Paseo 앱에서 PC를 페어링(Desktop → Settings → 호스트 → **Pair Device**)하면 Tailscale 없이도 됩니다. 회의실을 폰에서 보려면 Tailscale을 켜고 `http://<PC의 Tailscale IP>:6769`.
 
 회의실 화면 설명은 아래 6번, 팀 지시문은 [`TEAM_PROMPT.md`](meeting-room/TEAM_PROMPT.md)에 있어요. 1~5번은 B(Docker)를 쓸 때만 필요합니다.

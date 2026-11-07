@@ -5,3 +5,4 @@ paseo-home/
 workspace/
 *.log
 node_modules/
+meeting-room/meeting-room.log

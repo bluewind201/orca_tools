@@ -12,5 +12,5 @@ if not exist node_modules\@getpaseo\cli (
 node setup-gemini.mjs
 echo.
 echo 회의실: http://localhost:6769   (끄려면 이 창을 닫으세요)
-node server.mjs
+node "%~dp0meeting-room\server.mjs"
 pause
