@@ -1,9 +1,10 @@
 // AI 팀 회의실 (Paseo): reads agents and their timelines from the Paseo daemon and serves a 2D office view.
-// No npm dependencies of its own: it borrows the client that ships with the globally installed Paseo CLI.
-// Runs inside the paseo container as the paseo user, so PASEO_HOME / PASEO_PASSWORD are already set.
+// It borrows the client that ships with the Paseo CLI (global install in Docker, or `npm install` in this folder).
+// Runs inside the paseo container, or directly on the PC next to Paseo Desktop (it finds the local daemon in ~/.paseo).
 import { createServer } from 'node:http'
 import { execFile } from 'node:child_process'
 import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import path from 'node:path'
 
@@ -13,13 +14,16 @@ const TOKEN = process.env.MEETING_ROOM_TOKEN || ''
 const POLL_MS = Number(process.env.MEETING_ROOM_POLL_MS || 4000)
 const MAX_EVENTS = 400
 
-const run = (cmd, args) => new Promise((resolve) => execFile(cmd, args, { timeout: 15000, maxBuffer: 16 * 1024 * 1024 }, (err, out) => resolve(err ? '' : String(out))))
+// shell on Windows so npm.cmd / paseo.cmd resolve
+const run = (cmd, args) => new Promise((resolve) => execFile(cmd, args, { timeout: 15000, maxBuffer: 16 * 1024 * 1024, shell: process.platform === 'win32' }, (err, out) => resolve(err ? '' : String(out))))
 
 // ---------- Paseo client ----------
 let lib = null
 async function loadLib() {
   if (lib) return lib
-  const root = process.env.PASEO_NODE_MODULES || (await run('npm', ['root', '-g'])).trim()
+  // 1) PASEO_NODE_MODULES, 2) meeting-room/node_modules (`npm install` here, used on Windows), 3) global npm (Docker image)
+  const local = path.join(DIR, 'node_modules')
+  const root = process.env.PASEO_NODE_MODULES || (existsSync(path.join(local, '@getpaseo/cli')) ? local : (await run('npm', ['root', '-g'])).trim())
   const imp = (p) => import(pathToFileURL(path.join(root, '@getpaseo/cli/dist', p)).href)
   const [client, target, logs] = await Promise.all([imp('utils/client.js'), imp('utils/daemon-target.js'), imp('commands/agent/logs.js')])
   lib = { connectToDaemon: client.connectToDaemon, selectDaemonTarget: target.selectDaemonTarget, fetchTimeline: logs.fetchAgentTimelineItems }

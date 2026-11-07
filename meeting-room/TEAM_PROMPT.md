@@ -10,11 +10,13 @@
 
 ## 쓰는 법
 
-1. Paseo(웹 `http://localhost:6767`, PC 앱, 모바일 앱)에서 `/workspace` 아래 프로젝트를 엽니다.
+1. Paseo(PC 앱, 모바일 앱, 또는 Docker 구성의 웹 `http://localhost:6767`)에서 프로젝트 폴더를 엽니다 (Docker 구성이면 `/workspace` 아래).
 2. 새 에이전트를 **Gemini**로 만들고 제목을 `[PM] 이번 목표`로 붙입니다.
 3. 아래 프롬프트를 붙여 넣고 맨 위 `목표:` 줄만 바꿉니다.
 4. 회의실 `http://localhost:6769`(폰에서는 PC의 Tailscale IP)에서 세 마리 담비가 일하고 대화하는 모습을 봅니다.
 
+> `paseo` 명령이 에이전트 셸에서 실행돼야 합니다. Docker 구성에는 이미 들어 있고, Windows의 Paseo Desktop을 쓴다면 **Settings → Integrations → Command line**을 켜 주세요.
+>
 > 처음 몇 번은 Gemini가 셸 명령(`paseo run`, `paseo send`) 실행 허락을 물어봅니다. Paseo 앱에서 승인하면 되고, 회의실 작업 보드에는 **승인 대기**로 보입니다.
 
 ---
@@ -28,15 +30,23 @@
 팀원은 이 둘뿐이야. 다른 에이전트를 더 만들지 마.
 
 [준비]
-1. `echo $PASEO_AGENT_ID`로 네 에이전트 ID를 확인해. 아래에서 <PM_ID>는 이 값이야.
+0. 지금 쓰는 셸을 확인해. Windows(PowerShell)면 아래 명령의 bash 문법을 PowerShell로 바꿔서 써.
+   (bash `$VAR` / `$(cat 파일)`  →  PowerShell `$env:VAR` / `(Get-Content 파일 -Raw)`)
+1. 네 에이전트 ID를 확인해: bash `echo $PASEO_AGENT_ID`, PowerShell `echo $env:PASEO_AGENT_ID`. 아래에서 <PM_ID>는 이 값이야.
 2. 저장소를 훑어보고 목표를 2~6개의 작은 작업으로 나눠. 각 작업에 "끝났다는 증거"(테스트 통과, 파일 경로, 스크린샷 등)를 정해.
 3. 디자인이 먼저 필요한 작업과 바로 개발할 수 있는 작업을 구분해. 서로 건드리는 파일이 겹치지 않게 나눠
    (예: 디자인은 design/와 styles/, 개발은 src/와 tests/).
 
 [팀원 시작] 팀원마다 딱 한 번만 만들고, 이후에는 같은 팀원에게 send로 이어서 시켜.
-  DESIGN=$(paseo run -q --no-wait --provider codex  --title "[디자인] <작업 요약>" "$(cat /tmp/design-brief.md)")
-  DEV=$(paseo run -q --no-wait --provider claude --title "[개발] <작업 요약>"   "$(cat /tmp/dev-brief.md)")
-  브리프 파일(/tmp/*.md)에는 아래 [팀원 공통 규칙]과 그 팀원의 작업 목록, 건드려도 되는 파일, 끝났다는 증거,
+  먼저 프로젝트 안 `.team/` 폴더에 브리프 파일(design-brief.md, dev-brief.md)을 쓰고 실행해. `-q`는 새 팀원의 ID만 출력해.
+  bash:
+    DESIGN=$(paseo run -q --no-wait --provider codex  --title "[디자인] <작업 요약>" "$(cat .team/design-brief.md)")
+    DEV=$(paseo run -q --no-wait --provider claude --title "[개발] <작업 요약>"   "$(cat .team/dev-brief.md)")
+  PowerShell:
+    $DESIGN = paseo run -q --no-wait --provider codex  --title "[디자인] <작업 요약>" (Get-Content .team/design-brief.md -Raw)
+    $DEV    = paseo run -q --no-wait --provider claude --title "[개발] <작업 요약>"   (Get-Content .team/dev-brief.md -Raw)
+  두 ID는 꼭 기억해 둬. `.team/` 폴더는 커밋하지 마.
+  브리프 파일에는 아래 [팀원 공통 규칙]과 그 팀원의 작업 목록, 건드려도 되는 파일, 끝났다는 증거,
   그리고 "네 PM의 ID는 <PM_ID>, 디자이너 ID는 $DESIGN, 개발자 ID는 $DEV" 를 꼭 적어줘. (DEV를 만들 땐 DESIGN ID를 넣고, DESIGN에는 나중에 send로 DEV ID를 알려줘.)
 
 [팀원 공통 규칙] (브리프에 그대로 복사)
@@ -73,7 +83,7 @@
 PM 없이 바로 시켜도 회의실에 보입니다. 제목 머리말만 지켜 주세요.
 
 ```bash
-# 컨테이너 안에서 (docker exec -it -u paseo -w /workspace/<프로젝트> paseo bash -l)
+# 프로젝트 폴더의 터미널에서 (Docker 구성이면 docker exec -it -u paseo -w /workspace/<프로젝트> paseo bash -l)
 paseo run --provider claude --title "[개발] 로그인 버그 수정" "로그인 후 새로고침하면 로그아웃되는 버그를 고쳐줘"
 paseo run --provider codex  --title "[디자인] 404 페이지" "브랜드 톤에 맞는 404 페이지 시안을 design/404.html로"
 paseo run --provider gemini --title "[PM] 다음 주 계획" "README와 이슈를 보고 다음 주 작업 계획을 세워줘"
@@ -81,5 +91,5 @@ paseo run --provider gemini --title "[PM] 다음 주 계획" "README와 이슈�
 
 ## 역할 바꾸기
 
-역할 이름, 색, 인식 단어, 기본 AI는 `paseo_tools\paseo-home\meeting-room\roles.json`에서 고칩니다. 저장 후 회의실을 새로고침하면 바로 반영됩니다.
+역할 이름, 색, 인식 단어, 기본 AI는 Docker 구성이면 `paseo_tools\paseo-home\meeting-room\roles.json`, Windows에서 직접 실행하면 `paseo_tools\meeting-room\roles.json`에서 고칩니다. 저장 후 회의실을 새로고침하면 바로 반영됩니다.
 에이전트 제목에 `[PM]`, `[개발]`, `[리뷰]`, `[디자인]`이 있으면 그 역할로, 없으면 AI 종류(gemini → PM, claude → 개발·리뷰, codex → 디자인)로 자리를 정합니다.

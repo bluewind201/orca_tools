@@ -4,3 +4,4 @@ home/
 paseo-home/
 workspace/
 *.log
+node_modules/

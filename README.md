@@ -1,15 +1,15 @@
-# Windows Docker Desktop에 Paseo AI 팀 서버 올리기
+# Windows에서 Paseo AI 팀 + 회의실 쓰기
 
-Windows PC의 Docker Desktop에서 [Paseo](https://paseo.sh) 데몬을 돌리고, 같은 PC의 브라우저나 폰(Tailscale)으로 지시하는 구성입니다.
+Windows PC에서 [Paseo](https://paseo.sh)로 AI 3명을 돌리고, 그 모습을 회의실 페이지로 보는 구성입니다. 이미 설치된 Paseo에 붙이거나(A), Docker Desktop에 따로 올릴 수 있어요(B).
 AI 팀은 3명입니다: **PM = Gemini**, **개발·리뷰 = Claude**, **디자인 = Codex**.
 
 ```
 [폰: Paseo 앱] ── Tailscale ──┐
-[PC: 브라우저]  ── localhost ──┼──> [Docker Desktop: paseo 컨테이너]
-                              │      ├ :6767 Paseo 데몬 + 웹 UI
+[PC: 브라우저]  ── localhost ──┼──> [Paseo (A: PC에 설치된 것 / B: Docker 컨테이너)]
+                              │      ├ Paseo 데몬 (B는 :6767 웹 UI도)
                               │      ├ :6769 AI 팀 회의실
                               │      ├ Claude Code / Codex / Gemini CLI
-                              │      └ /workspace  =  paseo_tools\workspace 폴더
+                              │      └ 프로젝트 폴더 (B는 paseo_tools\workspace)
 ```
 
 | 파일 | 역할 |
@@ -17,7 +17,48 @@ AI 팀은 3명입니다: **PM = Gemini**, **개발·리뷰 = Claude**, **디자�
 | `Dockerfile` | 공식 `ghcr.io/getpaseo/paseo` 이미지 + Claude Code·Codex·Gemini CLI + gh + 회의실 |
 | `nas-entrypoint.sh` | 사용자 권한 맞추기, Gemini 등록, 회의실 실행 후 Paseo 시작 (Windows·NAS 공용) |
 | `docker-compose.yml` | 포트, 볼륨, 환경변수 (개인 값은 `.env`) |
+| `start-meeting-room.cmd` | A 방법: 이 PC의 Paseo에 회의실만 붙여 실행 (더블클릭) |
 | `meeting-room/` | AI 팀 회의실 페이지와 [`TEAM_PROMPT.md`](meeting-room/TEAM_PROMPT.md) (3명 팀 지시문) |
+
+## 어떤 방법으로 설치할까요?
+
+| | A. 이미 설치된 Paseo 그대로 (권장) | B. Docker Desktop |
+|---|---|---|
+| Paseo | PC에 깔린 Paseo Desktop/CLI를 그대로 사용 | 컨테이너 안에 따로 설치 |
+| AI 로그인 | Windows에 깔린 claude / codex / gemini 사용 | 컨테이너 안에서 다시 로그인 |
+| 프로젝트 | 원래 쓰던 폴더 그대로 | `paseo_tools\workspace` 폴더 |
+| 필요한 것 | Node.js | Docker Desktop |
+
+**Paseo가 이미 PC에 있으면 A로 하세요.** 둘을 같이 켜면 Paseo가 두 개 돌아가고(포트 6767도 겹침) 에이전트 목록이 따로 놀아서 헷갈립니다.
+B로 가려면 Paseo Desktop을 끄거나, 컨테이너 쪽을 다른 포트(예: `"16767:6767"`)로 바꿔야 합니다.
+
+## A. 이미 설치된 Paseo에 회의실만 붙이기
+
+1. **Paseo CLI 켜기:** Paseo Desktop → Settings → Integrations → **Command line**을 켭니다. 에이전트가 `paseo run`, `paseo send`로 팀원을 부르려면 필요해요.
+   (Desktop 없이 CLI로 쓰는 중이면 이미 켜져 있는 것과 같습니다.)
+2. **AI 3명 준비:** PowerShell에서 아직 없는 것만 설치하고 로그인합니다.
+   ```powershell
+   npm install -g @anthropic-ai/claude-code @openai/codex @google/gemini-cli
+   claude                     # 로그인 후 /exit
+   codex login
+   gemini                     # Google 로그인 후 /quit
+   ```
+3. **저장소 받기:** [Node.js LTS](https://nodejs.org)가 있어야 합니다.
+   ```powershell
+   cd $HOME
+   git clone https://github.com/bluewind201/paseo_tools
+   ```
+4. **`paseo_tools\start-meeting-room.cmd`를 더블클릭합니다.** 처음 한 번 필요한 패키지를 받고, Gemini를 Paseo에 등록합니다(`%USERPROFILE%\.paseo\config.json`).
+   등록 메시지가 나오면 Paseo Desktop을 한 번 껐다 켜세요. 그러면 새 에이전트 만들 때 Gemini가 보입니다.
+5. 브라우저에서 `http://localhost:6769` 를 엽니다. 이 창이 켜져 있는 동안 회의실이 돌아갑니다.
+   PC를 켤 때 자동으로 띄우려면 `start-meeting-room.cmd`의 바로가기를 `shell:startup` 폴더(Win+R에 입력)에 넣으세요.
+6. 폰은 Paseo 앱에서 PC를 페어링(Desktop → Settings → 호스트 → **Pair Device**)하면 Tailscale 없이도 됩니다. 회의실을 폰에서 보려면 Tailscale을 켜고 `http://<PC의 Tailscale IP>:6769`.
+
+회의실 화면 설명은 아래 6번, 팀 지시문은 [`TEAM_PROMPT.md`](meeting-room/TEAM_PROMPT.md)에 있어요. 1~5번은 B(Docker)를 쓸 때만 필요합니다.
+
+---
+
+## B. Docker Desktop으로 따로 돌리기
 
 ## 1. 준비
 

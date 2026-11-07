@@ -4,3 +4,4 @@ workspace
 docs
 .git
 .env
+meeting-room/node_modules

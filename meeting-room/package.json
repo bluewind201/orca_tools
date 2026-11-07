@@ -1,0 +1,13 @@
+{
+  "name": "paseo-meeting-room",
+  "private": true,
+  "type": "module",
+  "description": "AI 팀 회의실: 2D view of Paseo agents",
+  "scripts": {
+    "setup": "node setup-gemini.mjs",
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@getpaseo/cli": "^0.15.2"
+  }
+}
