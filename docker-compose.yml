@@ -1,4 +1,4 @@
-# Paseo on the NAS. Personal values come from .env next to this file (see .env.example).
+# Paseo on Docker Desktop (Windows) or a NAS. Personal values come from .env next to this file (see .env.example).
 services:
   paseo:
     build: .
@@ -7,16 +7,16 @@ services:
     restart: unless-stopped
     init: false            # tini is already the entrypoint
     ports:
-      - "6767:6767"   # Paseo daemon + web UI (http://<tailscale-ip>:6767)
+      - "6767:6767"   # Paseo daemon + web UI (http://localhost:6767)
       - "6769:6769"   # AI 팀 회의실 page
     environment:
       TZ: Asia/Seoul
-      PUID: "${PUID:-1026}"                                   # `id` in DSM SSH → uid
-      PGID: "${PGID:-100}"                                    # `id` in DSM SSH → gid
+      PUID: "${PUID:-1000}"                                   # Windows: 1000 / NAS: `id` → uid (e.g. 1026)
+      PGID: "${PGID:-1000}"                                   # Windows: 1000 / NAS: `id` → gid (e.g. 100)
       PASEO_PASSWORD: "${PASEO_PASSWORD:?set PASEO_PASSWORD in .env}"
       PASEO_HOSTNAMES: "${PASEO_HOSTNAMES:-}"                 # only for DNS names (e.g. nas.tailnet.ts.net); IPs work already
       MEETING_ROOM: "${MEETING_ROOM:-on}"                     # on | off
       MEETING_ROOM_TOKEN: "${MEETING_ROOM_TOKEN:-}"           # optional: open :6769/?token=<word>
     volumes:
       - ./paseo-home:/home/paseo  # Paseo data, AI logins (Claude/Codex/Gemini), git/gh config
-      - ./workspace:/workspace    # your git projects (same folder Orca used)
+      - ./workspace:/workspace    # your git projects

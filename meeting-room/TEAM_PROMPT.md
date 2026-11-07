@@ -10,10 +10,10 @@
 
 ## 쓰는 법
 
-1. Paseo(웹 `http://<NAS Tailscale IP>:6767`, PC 앱, 모바일 앱)에서 `/workspace` 아래 프로젝트를 엽니다.
+1. Paseo(웹 `http://localhost:6767`, PC 앱, 모바일 앱)에서 `/workspace` 아래 프로젝트를 엽니다.
 2. 새 에이전트를 **Gemini**로 만들고 제목을 `[PM] 이번 목표`로 붙입니다.
 3. 아래 프롬프트를 붙여 넣고 맨 위 `목표:` 줄만 바꿉니다.
-4. 회의실 `http://<NAS Tailscale IP>:6769`에서 세 마리 담비가 일하고 대화하는 모습을 봅니다.
+4. 회의실 `http://localhost:6769`(폰에서는 PC의 Tailscale IP)에서 세 마리 담비가 일하고 대화하는 모습을 봅니다.
 
 > 처음 몇 번은 Gemini가 셸 명령(`paseo run`, `paseo send`) 실행 허락을 물어봅니다. Paseo 앱에서 승인하면 되고, 회의실 작업 보드에는 **승인 대기**로 보입니다.
 
@@ -73,7 +73,7 @@
 PM 없이 바로 시켜도 회의실에 보입니다. 제목 머리말만 지켜 주세요.
 
 ```bash
-# 컨테이너 안에서 (sudo docker exec -it -u paseo -w /workspace/<프로젝트> paseo bash -l)
+# 컨테이너 안에서 (docker exec -it -u paseo -w /workspace/<프로젝트> paseo bash -l)
 paseo run --provider claude --title "[개발] 로그인 버그 수정" "로그인 후 새로고침하면 로그아웃되는 버그를 고쳐줘"
 paseo run --provider codex  --title "[디자인] 404 페이지" "브랜드 톤에 맞는 404 페이지 시안을 design/404.html로"
 paseo run --provider gemini --title "[PM] 다음 주 계획" "README와 이슈를 보고 다음 주 작업 계획을 세워줘"
@@ -81,5 +81,5 @@ paseo run --provider gemini --title "[PM] 다음 주 계획" "README와 이슈�
 
 ## 역할 바꾸기
 
-역할 이름, 색, 인식 단어, 기본 AI는 NAS의 `/docker/orca/paseo-home/meeting-room/roles.json`에서 고칩니다. 저장 후 회의실을 새로고침하면 바로 반영됩니다.
+역할 이름, 색, 인식 단어, 기본 AI는 `paseo_tools\paseo-home\meeting-room\roles.json`에서 고칩니다. 저장 후 회의실을 새로고침하면 바로 반영됩니다.
 에이전트 제목에 `[PM]`, `[개발]`, `[리뷰]`, `[디자인]`이 있으면 그 역할로, 없으면 AI 종류(gemini → PM, claude → 개발·리뷰, codex → 디자인)로 자리를 정합니다.

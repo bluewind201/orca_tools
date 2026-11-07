@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# NAS wrapper around Paseo's own entrypoint:
-#  1. run the paseo user as the NAS user (PUID/PGID) so files in the shared folders stay editable from DSM
+# Wrapper around Paseo's own entrypoint (Docker Desktop on Windows, or a Synology NAS):
+#  1. run the paseo user as the NAS user (PUID/PGID) so mounted folders stay editable from the host (NAS: your DSM uid; Windows: leave 1000)
 #  2. register Gemini as an ACP provider (Paseo has no built-in Gemini)
 #  3. start the AI 팀 회의실 page on :6769
 #  4. hand over to /usr/local/bin/paseo-docker-entrypoint, which starts the daemon as paseo
@@ -25,7 +25,9 @@ fi
 
 for d in "$HOME_DIR" /workspace; do
   mkdir -p "$d"
-  if [[ "$(stat -c %u "$d")" != "$PUID" ]]; then
+  # Only chown when the folder isn't writable yet. Docker Desktop's Windows folders are writable
+  # but always report root as owner, so a blanket chown there would rerun (slowly) on every start.
+  if [[ "$(stat -c %u "$d")" != "$PUID" ]] && ! gosu paseo test -w "$d"; then
     echo "[nas] fixing owner of $d → $PUID:$PGID"
     chown -R "$PUID:$PGID" "$d" || true
   fi

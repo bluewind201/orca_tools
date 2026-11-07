@@ -1,4 +1,4 @@
-# Paseo daemon + web UI with the three agent CLIs this team uses (Gemini = PM, Claude = 개발·리뷰, Codex = 디자인)
+# Paseo daemon + web UI (Docker Desktop on Windows, or a NAS) with the three agent CLIs this team uses (Gemini = PM, Claude = 개발·리뷰, Codex = 디자인)
 # and the AI 팀 회의실 page. Built on the official image, which already has node, git, gosu and tini.
 FROM ghcr.io/getpaseo/paseo:latest
 
@@ -9,7 +9,7 @@ RUN set -eux; \
     apt-get install -y --no-install-recommends ripgrep jq less nano python3; \
     rm -rf /var/lib/apt/lists/*
 
-# GitHub CLI (amd64 on DS225+, arm64 also works)
+# GitHub CLI (amd64 or arm64)
 ARG GH_VERSION=2.62.0
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
@@ -23,7 +23,8 @@ RUN set -eux; \
 
 COPY meeting-room /opt/meeting-room
 COPY nas-entrypoint.sh /usr/local/bin/nas-entrypoint.sh
-RUN chmod +x /usr/local/bin/nas-entrypoint.sh
+# Strip Windows line endings in case the repo was cloned with autocrlf
+RUN sed -i 's/\r$//' /usr/local/bin/nas-entrypoint.sh && chmod +x /usr/local/bin/nas-entrypoint.sh
 
 EXPOSE 6767 6769
 # Stay root: nas-entrypoint maps the paseo user to the NAS uid, then the base entrypoint drops to it.
